@@ -7,3 +7,5 @@ começar por alterar o write nas operações, implementando a utilização dos b
 -> repetir para blocos diretos (vetor tamanho n)
 
 -> pôr isto no README!
+
+    /* A FAZER:  pôr delete de diretorias a funcionar */

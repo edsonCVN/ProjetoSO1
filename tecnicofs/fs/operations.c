@@ -110,34 +110,43 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
 
-    /* Determine how many bytes to write */
-    if (to_write + file->of_offset > BLOCK_SIZE) {
-        to_write = BLOCK_SIZE - file->of_offset;
+    int block_index = inode->i_size / BLOCK_SIZE; //indice do primeiro bloco a escrever
+    size_t size_to_write = to_write;
+    size_t size_written = 0;
+    
+    for(int j = block_index; j < INODE_BLOCKS_SIZE && size_written != size_to_write; j++) { 
+        /* Determine how many bytes to write */
+        //if (to_write + file->of_offset > BLOCK_SIZE) {
+        //    to_write = BLOCK_SIZE - file->of_offset;
+        //}
+        to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j);
+
+        if (to_write > 0) {
+            if (inode->i_data_block[j] == -1) {
+                /* If empty file, allocate new block */
+                inode->i_data_block[j] = data_block_alloc();
+            }
+
+            void *block = data_block_get(inode->i_data_block[j]);
+            if (block == NULL) {
+                return -1;
+            }
+
+            /* Perform the actual write */
+            memcpy(block + file->of_offset, buffer + size_written, to_write);
+
+            /* The offset associated with the file handle is
+            * incremented accordingly */
+            file->of_offset += to_write;
+            
+            size_written += to_write; //atualiza o escrito total com o escrito neste bloco
+            
+            if (file->of_offset > inode->i_size) {
+                inode->i_size += file->of_offset;
+            }
+        }
     }
-
-    if (to_write > 0) {
-        if (inode->i_size == 0) {
-            /* If empty file, allocate new block */
-            inode->i_data_block = data_block_alloc();
-        }
-
-        void *block = data_block_get(inode->i_data_block);
-        if (block == NULL) {
-            return -1;
-        }
-
-        /* Perform the actual write */
-        memcpy(block + file->of_offset, buffer, to_write);
-
-        /* The offset associated with the file handle is
-         * incremented accordingly */
-        file->of_offset += to_write;
-        if (file->of_offset > inode->i_size) {
-            inode->i_size = file->of_offset;
-        }
-    }
-
-    return (ssize_t)to_write;
+    return (ssize_t)size_written;
 }
 
 

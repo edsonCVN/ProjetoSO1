@@ -23,8 +23,8 @@ typedef enum { T_FILE, T_DIRECTORY } inode_type;
 typedef struct {
     inode_type i_node_type;
     size_t i_size;
-    int i_data_block;
-    /* in a real FS, more fields would exist here */
+    int i_data_block[INODE_BLOCKS_SIZE];
+    
 } inode_t;
 
 typedef enum { FREE = 0, TAKEN = 1 } allocation_state_t;

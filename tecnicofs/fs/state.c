@@ -104,28 +104,33 @@ int inode_create(inode_type n_type) {
             if (n_type == T_DIRECTORY) {
                 /* Initializes directory (filling its block with empty
                  * entries, labeled with inumber==-1) */
-                int b = data_block_alloc();
-                if (b == -1) {
-                    freeinode_ts[inumber] = FREE;
-                    return -1;
-                }
+                
+                for(int j = 0; j < INODE_BLOCKS_SIZE; j++) {
+                    int b = data_block_alloc();
+                    if (b == -1) {
+                        freeinode_ts[inumber] = FREE;
+                        return -1;
+                    }
 
-                inode_table[inumber].i_size = BLOCK_SIZE;
-                inode_table[inumber].i_data_block = b;
+                    inode_table[inumber].i_size += BLOCK_SIZE;
+                    inode_table[inumber].i_data_block[j] = b;
 
-                dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
-                if (dir_entry == NULL) {
-                    freeinode_ts[inumber] = FREE;
-                    return -1;
-                }
+                    dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
+                    if (dir_entry == NULL) {
+                        freeinode_ts[inumber] = FREE;
+                        return -1;
+                    }
 
-                for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-                    dir_entry[i].d_inumber = -1;
+                    for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
+                        dir_entry[i].d_inumber = -1;
+                    }
                 }
             } else {
                 /* In case of a new file, simply sets its size to 0 */
-                inode_table[inumber].i_size = 0;
-                inode_table[inumber].i_data_block = -1;
+                for(int j = 0; j < INODE_BLOCKS_SIZE; j++) {
+                    inode_table[inumber].i_size = 0;
+                    inode_table[inumber].i_data_block[j] = -1;
+                }
             }
             return inumber;
         }
@@ -148,13 +153,24 @@ int inode_delete(int inumber) {
         return -1;
     }
 
+    /* A FAZER:  pôr delete de diretorias a funcionar */
+    if (inode_table[inumber].i_node_type == T_DIRECTORY) {
+        return -1;
+    }
+
     freeinode_ts[inumber] = FREE;
 
     if (inode_table[inumber].i_size > 0) {
-        if (data_block_free(inode_table[inumber].i_data_block) == -1) {
-            return -1;
+        
+        for(int j = 0; j < INODE_BLOCKS_SIZE; j++) {
+            if (data_block_free(inode_table[inumber].i_data_block[j]) == -1) {
+                return -1;
+            }
         }
+
+        inode_table[inumber].i_size = 0;
     }
+
 
     /* TODO: handle non-empty directories (either return error, or recursively
      * delete children */
