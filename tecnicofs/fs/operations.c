@@ -144,7 +144,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             size_written += to_write; //atualiza o escrito total com o escrito neste bloco
             
             if (file->of_offset > inode->i_size) {
-                inode->i_size += file->of_offset;
+                inode->i_size = file->of_offset; //não devia ser só =? estava +=
             }
         }
     }
@@ -180,9 +180,9 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         
         for(size_t j = initial_offset / BLOCK_SIZE; j < INODE_BLOCKS_SIZE; j++) {
             
-            void *block = data_block_get(inode->i_data_block);
+            void *block = data_block_get(inode->i_data_block[j]);
             
-            int to_read_block = BLOCK_SIZE - (file->of_offset - BLOCK_SIZE * j);
+            size_t to_read_block = BLOCK_SIZE - (file->of_offset - BLOCK_SIZE * j);
             if (len - to_read >= BLOCK_SIZE) {
                 to_read_block = BLOCK_SIZE;
             }
