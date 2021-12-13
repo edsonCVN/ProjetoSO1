@@ -121,7 +121,12 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         //if (to_write + file->of_offset > BLOCK_SIZE) {
         //    to_write = BLOCK_SIZE - file->of_offset;
         //}
-        to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j);
+        //to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j); está a dar bug de to_write = 1024
+        to_write = size_to_write - size_written;
+
+        if (to_write + file->of_offset > BLOCK_SIZE) {
+            to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j);
+        }
 
         if (to_write > 0) {
             if (inode->i_data_block[j] == -1) {
@@ -170,7 +175,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         to_read = len;
     }
 
-    if (file->of_offset + to_read >= (inode->i_size - file->of_offset)) {
+    if (file->of_offset + to_read > (inode->i_size - file->of_offset)) { //alteração 13/12 às 21:35 de >= para > (não passava daqui)
         return -1;
     }//alterado
 
@@ -181,7 +186,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         for(size_t j = initial_offset / BLOCK_SIZE; j < INODE_BLOCKS_SIZE; j++) {
             
             void *block = data_block_get(inode->i_data_block[j]);
-            
+            //este mecanismo está a funcionar mal (está dar 1024...)
             size_t to_read_block = BLOCK_SIZE - (file->of_offset - BLOCK_SIZE * j);
             if (len - to_read >= BLOCK_SIZE) {
                 to_read_block = BLOCK_SIZE;

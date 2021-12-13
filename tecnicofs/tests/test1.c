@@ -25,7 +25,7 @@ int main() {
     assert(f != -1);
 
     r = tfs_read(f, buffer, sizeof(buffer) - 1);
-    assert(r == strlen(str));
+    assert(r == strlen(str)); //está a rebentar aqui
 
     buffer[r] = '\0';
 
