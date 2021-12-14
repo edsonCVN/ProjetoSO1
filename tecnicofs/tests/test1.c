@@ -16,7 +16,7 @@ int main() {
     f = tfs_open(path, TFS_O_CREAT);
     assert(f != -1);
 
-    r = tfs_write(f, str, strlen(str));
+    r = tfs_write(f, str, strlen(str)); //isto aqui nao devia ser sizeof? (para copiar o \0)
     assert(r == strlen(str));
 
     assert(tfs_close(f) != -1);
@@ -25,7 +25,7 @@ int main() {
     assert(f != -1);
 
     r = tfs_read(f, buffer, sizeof(buffer) - 1);
-    assert(r == strlen(str)); //está a rebentar aqui
+    assert(r == strlen(str));
 
     buffer[r] = '\0';
 
