@@ -112,19 +112,22 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
 
-    size_t block_index = inode->i_size / BLOCK_SIZE; //indice do primeiro bloco a escrever
+    size_t block_index = file->of_offset / BLOCK_SIZE;//inode->i_size / BLOCK_SIZE; MUDEI!
     size_t size_to_write = to_write;
     size_t size_written = 0;
     
-    for(size_t j = block_index; j < INODE_BLOCKS_SIZE && size_written != size_to_write; j++) { 
+    for(size_t j = block_index, block_offset = 0; j < INODE_BLOCKS_SIZE && size_written != size_to_write; j++) { 
         /* Determine how many bytes to write */
         //if (to_write + file->of_offset > BLOCK_SIZE) {
         //    to_write = BLOCK_SIZE - file->of_offset;
         //}
         //to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j); está a dar bug de to_write = 1024
+        
+        block_offset = file->of_offset % BLOCK_SIZE;
+        
         to_write = size_to_write - size_written;
 
-        if (to_write + file->of_offset > BLOCK_SIZE) {
+        if (to_write + block_offset > BLOCK_SIZE) { //aqui parece-me que devia ser o offset do bloco!
             to_write = BLOCK_SIZE - (inode->i_size - BLOCK_SIZE * j);
         }
 
@@ -142,8 +145,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             /* Perform the actual write */
             memcpy(block + file->of_offset, buffer + size_written, to_write);
             
-            //printf("buffer: %s\n", (char*)buffer);
-            
+            /*printf("w: ");
+            for(size_t a = 0; a < to_write; a++)
+                printf("%c", *(char*)(block + file->of_offset + a));
+            printf("\n");*/
             /* The offset associated with the file handle is
             * incremented accordingly */
             
@@ -176,11 +181,13 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Determine how many bytes to read */
     size_t to_read = inode->i_size - file->of_offset;
-    if (to_read > len) { //caso seja maior que o tamanho do buffer ISTO TEM QUE PASSAR PARA DENTRO DO FOR
+    if (to_read > len) { //esta funcao so le uma vez para o buffer!
         to_read = len;
     }
 
-    if (file->of_offset + to_read > (inode->i_size - file->of_offset)) { //alteração 13/12 às 21:35 de >= para > (não passava daqui)
+    //erro neste if
+    //if (file->of_offset + to_read > (inode->i_size - file->of_offset)) { //alteração 13/12 às 21:35 de >= para > (não passava daqui)
+    if(to_read > BLOCK_SIZE - (file->of_offset % BLOCK_SIZE)) {
         return -1;
     }//alterado
 
@@ -190,9 +197,9 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         //começa no bloco onde está o offset
         size_t initial_offset = file->of_offset;
         size_t buffer_offset = 0;
-        
 
-        for(size_t j = initial_offset / BLOCK_SIZE; j < INODE_BLOCKS_SIZE; j++) {
+
+        for(size_t j = initial_offset / BLOCK_SIZE; to_read > 0 && j < INODE_BLOCKS_SIZE; j++) {
             
             void *block = data_block_get(inode->i_data_block[j]);
 
@@ -200,35 +207,36 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
             if (len - to_read >= BLOCK_SIZE) {
                 to_read_block = BLOCK_SIZE; //ha mais blocos
             }
-            else {
-                to_read_block = to_read;//len - to_read; ultimo bloco
-            }
+            
             //isto está muito à toa, a verificação se se pode ler toda a quantidade que foi pedida não devia ser antes do for?
             if (j == (initial_offset / BLOCK_SIZE) && block == NULL) { //a verificacao do bloco devia ser feita logo quando se faz get. não?
                 return -1;
             }
-            if(block == NULL) {
+            if(block == NULL) {//??
                 break;
             }
 
-            //se o buffer for de 40 mas o que vou ler só tem 4 bytes, o que faço? todo o resto deveria ficar a '\0'?
-
             /* Perform the actual read */
             memcpy(buffer + buffer_offset, block + file->of_offset, to_read_block);
-            printf("%s\n",(char*) buffer);
            
+            /*printf("r: ");
+            for(size_t a = 0; a < to_read_block; a++)
+                printf("%c", *(char*)(buffer + buffer_offset + a));
+            printf("\n");*/
+
             /* The offset associated with the file handle is
             * incremented accordingly */
+            
+            
             file->of_offset += to_read_block;
             buffer_offset += to_read_block;
             to_read -= to_read_block;
             read += to_read_block;
-            if(to_read == 0) {
-                break;
-            }
-        }
-        
-    }
+            
 
+            
+        }
+        //printf("f_of: %4ld    b_of: %4ld    to_r: %4ld    r: %4ld\n", file->of_offset, buffer_offset, to_read, read);
+    }  
     return (ssize_t)read;
 }

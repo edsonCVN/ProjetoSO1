@@ -16,7 +16,7 @@ int main() {
     f = tfs_open(path, TFS_O_CREAT);
     assert(f != -1);
 
-    r = tfs_write(f, str, strlen(str)); //isto aqui nao devia ser sizeof? (para copiar o \0)
+    r = tfs_write(f, str, strlen(str));
     assert(r == strlen(str));
 
     assert(tfs_close(f) != -1);
@@ -28,8 +28,6 @@ int main() {
     assert(r == strlen(str));
 
     buffer[r] = '\0';
-
-    printf("buffer: %s\n", buffer);
     assert(strcmp(buffer, str) == 0);
 
     assert(tfs_close(f) != -1);
