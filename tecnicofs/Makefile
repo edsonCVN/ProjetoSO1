@@ -14,7 +14,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
+TARGET_EXECS := tests/ourtest_ab tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -70,7 +70,7 @@ tests/copy_to_external_simple: tests/copy_to_external_simple.o fs/operations.o f
 tests/write_10_blocks_spill: tests/write_10_blocks_spill.o fs/operations.o fs/state.o
 tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/state.o
 tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
-
+tests/ourtest_ab: tests/ourtest_ab.o fs/operations.o fs/state.o
 
 test1: 
 	./tests/test1
@@ -90,6 +90,8 @@ test5:
 test6: 
 	./tests/write_more_than_10_blocks_simple
 
+test7:
+	./tests/ourtest_ab
 
 tests:
 	./tests/test1
@@ -98,6 +100,7 @@ tests:
 	./tests/write_10_blocks_spill
 	./tests/write_10_blocks_simple
 	./tests/write_more_than_10_blocks_simple
+	./tests/ourtest_ab
 
 
 clean:

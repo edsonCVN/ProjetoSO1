@@ -145,10 +145,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             /* Perform the actual write */
             memcpy(block + file->of_offset, buffer + size_written, to_write);
             
-            /*printf("w: ");
+            printf("w: ");
             for(size_t a = 0; a < to_write; a++)
                 printf("%c", *(char*)(block + file->of_offset + a));
-            printf("\n");*/
+            printf("\n");
             /* The offset associated with the file handle is
             * incremented accordingly */
             
@@ -181,31 +181,34 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Determine how many bytes to read */
     size_t to_read = inode->i_size - file->of_offset;
-    if (to_read > len) { //esta funcao so le uma vez para o buffer!
+    if (to_read > len) {
         to_read = len;
     }
 
-    //erro neste if
-    //if (file->of_offset + to_read > (inode->i_size - file->of_offset)) { //alteração 13/12 às 21:35 de >= para > (não passava daqui)
-    if(to_read > BLOCK_SIZE - (file->of_offset % BLOCK_SIZE)) {
+
+    if(to_read > BLOCK_SIZE * INODE_BLOCKS_SIZE - file->of_offset) {
         return -1;
-    }//alterado
+    }
 
     size_t read = 0;
     if (to_read > 0) {
         
-        //começa no bloco onde está o offset
+
         size_t initial_offset = file->of_offset;
         size_t buffer_offset = 0;
 
 
-        for(size_t j = initial_offset / BLOCK_SIZE; to_read > 0 && j < INODE_BLOCKS_SIZE; j++) {
+        for(size_t j = initial_offset / BLOCK_SIZE, block_offset = 0; to_read > 0 && j < INODE_BLOCKS_SIZE; j++) {
             
             void *block = data_block_get(inode->i_data_block[j]);
 
+            block_offset = file->of_offset % BLOCK_SIZE;
             size_t to_read_block = to_read;//BLOCK_SIZE - (file->of_offset - BLOCK_SIZE * j);
-            if (len - to_read >= BLOCK_SIZE) {
-                to_read_block = BLOCK_SIZE; //ha mais blocos
+            //if (len - to_read >= BLOCK_SIZE) {
+            //    to_read_block = BLOCK_SIZE;
+            //}
+            if(to_read > BLOCK_SIZE - block_offset) {
+                to_read_block = BLOCK_SIZE - block_offset; //ha mais blocos
             }
             
             //isto está muito à toa, a verificação se se pode ler toda a quantidade que foi pedida não devia ser antes do for?
@@ -218,25 +221,22 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
             /* Perform the actual read */
             memcpy(buffer + buffer_offset, block + file->of_offset, to_read_block);
+            //FALTA VER PORQUE É QUE ISTO ESTAVA A DAR
            
-            /*printf("r: ");
+            printf("r: ");
             for(size_t a = 0; a < to_read_block; a++)
                 printf("%c", *(char*)(buffer + buffer_offset + a));
-            printf("\n");*/
+            printf("\n");
 
             /* The offset associated with the file handle is
             * incremented accordingly */
-            
             
             file->of_offset += to_read_block;
             buffer_offset += to_read_block;
             to_read -= to_read_block;
             read += to_read_block;
             
-
-            
         }
-        //printf("f_of: %4ld    b_of: %4ld    to_r: %4ld    r: %4ld\n", file->of_offset, buffer_offset, to_read, read);
     }  
     return (ssize_t)read;
 }

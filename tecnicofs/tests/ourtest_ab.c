@@ -20,7 +20,14 @@ int main() {
        sometimes target 2 consecutive blocks (since 1KB is *not* a multiple of SIZE=250) 
     */
     char input[SIZE]; 
-    memset(input, 'A', SIZE);
+    
+    for(int i=0;i<SIZE;i++){
+        if(i%2 == 0)
+            input[i] = 'A';
+        else
+            input[i] = 'B';
+    }
+    //memset(input, 'AB', SIZE / 2);
 
     char output [SIZE];
 
@@ -39,11 +46,7 @@ int main() {
     assert(fd != -1 );
 
     for (int i = 0; i < COUNT; i++) {
-        //printf("\n\n%d\n\n", i);
         assert(tfs_read(fd, output, SIZE) == SIZE);
-        //printf("\ninput -> %s/nlen: %ld", input, strlen(input));
-        //printf("\noutput-> %s/nlen: %ld", output, strlen(output));
-        //printf("\n\naaa%d", memcmp(input, output, SIZE));
         assert (memcmp(input, output, SIZE) == 0);
     }
 
