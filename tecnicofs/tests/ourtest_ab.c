@@ -20,12 +20,10 @@ int main() {
        sometimes target 2 consecutive blocks (since 1KB is *not* a multiple of SIZE=250) 
     */
     char input[SIZE]; 
-    
-    for(int i=0;i<SIZE;i++){
-        if(i%2 == 0)
-            input[i] = 'A';
-        else
-            input[i] = 'B';
+    char msg[19] = "ola eu sou o pedro";
+    for(int i=0, cnt = 0;i<SIZE;i++, cnt++){
+        input[i] = msg[cnt];
+        if(cnt == 18) cnt = 0;
     }
     //memset(input, 'AB', SIZE / 2);
 
