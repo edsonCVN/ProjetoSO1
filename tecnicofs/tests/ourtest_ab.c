@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <string.h>
 
-#define COUNT 40
-#define SIZE 250
+#define COUNT 8
+#define SIZE 2500
 
 /**
    This test fills in a new file up to 10 blocks via multiple writes, 
@@ -23,7 +23,7 @@ int main() {
     char msg[19] = "ola eu sou o pedro";
     for(int i=0, cnt = 0;i<SIZE;i++, cnt++){
         input[i] = msg[cnt];
-        if(cnt == 18) cnt = 0;
+        if(cnt == 17) cnt = 0;
     }
     //memset(input, 'AB', SIZE / 2);
 
