@@ -1,57 +1,45 @@
-#include "../fs/operations.h"
+#include "fs/operations.h"
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 
-#define COUNT 8
-#define SIZE 2500
-
-/**
-   This test fills in a new file up to 10 blocks via multiple writes, 
-   where some calls to tfs_write may imply filling in 2 consecutive blocks, 
-   then checks if the file contents are as expected
- */
-
+#define SIZE 256
 
 int main() {
 
+    //char *str = "AAA! AAA! AAA! ";
     char *path = "/f1";
-
-    /* Writing this buffer multiple times to a file stored on 1KB blocks will 
-       sometimes target 2 consecutive blocks (since 1KB is *not* a multiple of SIZE=250) 
-    */
-    char input[SIZE]; 
-    char msg[19] = "ola eu sou o pedro";
-    for(int i=0, cnt = 0;i<SIZE;i++, cnt++){
-        input[i] = msg[cnt];
-        if(cnt == 17) cnt = 0;
-    }
-    //memset(input, 'AB', SIZE / 2);
-
-    char output [SIZE];
+    char *path2 = "external_file.txt";
+    char to_read[40];
+    
+    char str[SIZE]; 
+    memset(str, 'A', SIZE);
 
     assert(tfs_init() != -1);
 
-    /* Write input COUNT times into a new file */
-    int fd = tfs_open(path, TFS_O_CREAT);
-    assert(fd != -1);
-    for (int i = 0; i < COUNT; i++) {
-        assert(tfs_write(fd, input, SIZE) == SIZE);
+    int file = tfs_open(path, TFS_O_CREAT);
+    assert(file != -1);
+
+    for (int i = 0; i < 40; i++) {
+        assert(tfs_write(file, str, SIZE) == SIZE);
     }
-    assert(tfs_close(fd) != -1);
+    //assert(tfs_write(file, str, strlen(str)) != -1);
 
-    /* Open again to check if contents are as expected */
-    fd = tfs_open(path, 0);
-    assert(fd != -1 );
+    assert(tfs_close(file) != -1);
 
-    for (int i = 0; i < COUNT; i++) {
-        assert(tfs_read(fd, output, SIZE) == SIZE);
-        assert (memcmp(input, output, SIZE) == 0);
-    }
+    assert(tfs_copy_to_external_fs(path, path2) != -1);
 
-    assert(tfs_close(fd) != -1);
+    FILE *fp = fopen(path2, "r");
 
+    assert(fp != NULL);
 
-    printf("Sucessful test\n");
+    assert(fread(to_read, sizeof(char), strlen(str), fp) == strlen(str));
+
+    assert(fclose(fp) != -1);
+
+    unlink(path2);
+
+    printf("Successful test.\n");
 
     return 0;
 }

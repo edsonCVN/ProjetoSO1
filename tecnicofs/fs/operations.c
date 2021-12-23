@@ -309,3 +309,38 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     } 
     return (ssize_t)read;
 }
+
+
+int tfs_copy_to_external_fs(char const *src_path, char const *dest_path) {
+
+    char buffer[BLOCK_SIZE];
+    ssize_t bytes_read = 0;
+    int error = 0;
+    int src_file = tfs_open(src_path, 0);
+
+    if(src_file == -1) {
+        return -1;
+    }
+
+    FILE *dest_fp = fopen(dest_path, "w");
+    if(dest_fp == NULL) {
+        tfs_close(src_file);
+        return -1;
+    }
+
+    do {
+        bytes_read = tfs_read(src_file, buffer, BLOCK_SIZE);
+        if(bytes_read == -1 || bytes_read != fwrite(buffer, sizeof(char), (size_t) bytes_read, dest_fp)) {
+            error += -1;
+        }
+    }
+    while(bytes_read == BLOCK_SIZE && error == 0);
+    
+    error += tfs_close(src_file);
+    error += fclose(dest_fp);
+    
+    if(error != 0) {
+        return -1;
+    }
+    return 0;
+}
