@@ -11,6 +11,7 @@
 #define MAX_FILE_NAME (40)
 #define INODE_BLOCKS_SIZE (11)
 #define INDIRECT_BLOCK_INDEX (10)
+#define FILE_MAXSIZE (272384)
 
 #define DELAY (5000)
 

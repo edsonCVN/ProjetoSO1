@@ -111,12 +111,11 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     if (inode == NULL) {
         return -1;
     }
-
     
     size_t size_to_write = to_write;
     size_t size_written = 0;
     
-    while(size_to_write > size_written) {
+    while(size_to_write > size_written && inode->i_size < FILE_MAXSIZE) {
         
         if(inode->i_size < (INODE_BLOCKS_SIZE-1) * (BLOCK_SIZE)) {
             size_t block_index = file->of_offset / BLOCK_SIZE;
@@ -175,7 +174,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             }
 
             size_t indirect_i = (file->of_offset - BLOCK_SIZE * 10) / BLOCK_SIZE; //para não contar com o 11th bloco
-            for(size_t i = indirect_i, block_offset = 0; size_to_write != size_written; i++) { //a condição size_to_write != size_written deve tornar o while escusado...
+            for(size_t i = indirect_i, block_offset = 0; i < (BLOCK_SIZE / sizeof(int)) && size_to_write != size_written; i++) { //a condição size_to_write != size_written deve tornar o while escusado...
                 
                 block_offset = file->of_offset % BLOCK_SIZE;
                 to_write = size_to_write - size_written;
@@ -274,7 +273,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
             }
 
             size_t first_indirect_i = (file->of_offset - BLOCK_SIZE * 10) / BLOCK_SIZE; //para não contar com o 11th bloco
-            for(size_t i = first_indirect_i; to_read != read; i++) { //a condição size_to_write != size_written deve tornar o while escusado...
+            for(size_t i = first_indirect_i; i < (BLOCK_SIZE / sizeof(int)) && to_read != read; i++) { //a condição size_to_write != size_written deve tornar o while escusado...
                     
                 char *block = (char*) data_block_get(indirect_block[i]);
                         
