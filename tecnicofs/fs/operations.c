@@ -45,7 +45,7 @@ int tfs_open(char const *name, int flags) {
     if (!valid_pathname(name)) {
         return -1;
     }
-
+    //SECÇÃO CRÍTICA início(para evitar que se criem dois inodes para o mesmo ficheiro)
     inum = tfs_lookup(name);
     if (inum >= 0) {
         /* The file already exists */
@@ -55,7 +55,7 @@ int tfs_open(char const *name, int flags) {
         }
 
         /* Trucate (if requested) */
-        if (flags & TFS_O_TRUNC) { //FIXME mudar para quando for indireto
+        if (flags & TFS_O_TRUNC) { //threads: em princípio sem problema porque é para limpar
             if (inode->i_size > 0) {
                 for(int j = 0; j < INODE_BLOCKS_SIZE; j++) { 
                     if (data_block_free(inode->i_data_block[j]) == -1) {
@@ -87,6 +87,7 @@ int tfs_open(char const *name, int flags) {
     } else {
         return -1;
     }
+    //SECÇÃO CRÍTICA fim (antes do return porque se pode abrir o ficheiro duas vezes)
 
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
