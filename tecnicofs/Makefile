@@ -32,6 +32,10 @@ CFLAGS += -Wno-sign-compare
 # optional debug symbols: run make DEBUG=no to deactivate them
 ifneq ($(strip $(DEBUG)), no)
   CFLAGS += -g
+  LDFLAGS += -lpthread
+  CFLAGS += -fsanitize=thread
+	LDFLAGS += -fsanitize=thread
+	CXXFLAGS = -fsanitize=thread
 endif
 
 # optional O3 optimization symbols: run make OPTIM=no to deactivate them

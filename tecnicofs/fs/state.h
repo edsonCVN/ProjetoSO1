@@ -24,6 +24,7 @@ typedef struct {
     inode_type i_node_type;
     size_t i_size;
     int i_data_block[INODE_BLOCKS_SIZE];
+    pthread_rwlock_t rwlock;
     
 } inode_t;
 

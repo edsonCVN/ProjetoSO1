@@ -96,6 +96,7 @@ int inode_create(inode_type n_type) {
         }
 
         /* Finds first free entry in i-node table */
+    //SECÇÃO CRÍTICA ESCRITA?
         if (freeinode_ts[inumber] == FREE) {
             /* Found a free entry, so takes it for the new i-node*/
             freeinode_ts[inumber] = TAKEN;
@@ -110,7 +111,7 @@ int inode_create(inode_type n_type) {
                     freeinode_ts[inumber] = FREE;
                     return -1;
                 }
-
+                
                 inode_table[inumber].i_size = BLOCK_SIZE;
                 inode_table[inumber].i_data_block[0] = b;
 
@@ -125,13 +126,15 @@ int inode_create(inode_type n_type) {
                 }
             } else {
                 /* In case of a new file, simply sets its size to 0 */
+                inode_table[inumber].i_size = 0;
                 for(int j = 0; j < INODE_BLOCKS_SIZE; j++) {
-                    inode_table[inumber].i_size = 0;
+                    
                     inode_table[inumber].i_data_block[j] = -1;
                 }
             }
             return inumber;
         }
+    //SECÇÃO CRÍTICA ESCRITA?
     }
     return -1;
 }
@@ -147,6 +150,7 @@ int inode_delete(int inumber) {
     insert_delay();
     insert_delay();
 
+//SECÇÃO CRÍTICA ESCRITA
     if (!valid_inumber(inumber) || freeinode_ts[inumber] == FREE) {
         return -1;
     }
@@ -168,7 +172,7 @@ int inode_delete(int inumber) {
 
         inode_table[inumber].i_size = 0;
     }
-
+//SECÇÃO CRÍTICA ESCRITA
 
     /* TODO: handle non-empty directories (either return error, or recursively
      * delete children */
@@ -183,12 +187,15 @@ int inode_delete(int inumber) {
  * Returns: pointer if successful, NULL if failed
  */
 inode_t *inode_get(int inumber) {
+//SECÇÃO CRÍTICA LEITURA   
     if (!valid_inumber(inumber)) {
         return NULL;
     }
-
+    inode_t *inode = &inode_table[inumber];
+//SECÇÃO CRÍTICA LEITURA
     insert_delay(); // simulate storage access delay to i-node
-    return &inode_table[inumber];
+    return inode;
+
 }
 
 /*
@@ -200,6 +207,7 @@ inode_t *inode_get(int inumber) {
  * Returns: SUCCESS or FAIL
  */
 int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
+//SECÇÃO CRÍTICA ESCRITA    
     if (!valid_inumber(inumber) || !valid_inumber(sub_inumber)) {
         return -1;
     }
@@ -229,7 +237,7 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
             return 0;
         }
     }
-
+//SECÇÃO CRÍTICA ESCRITA
     return -1;
 }
 
@@ -241,6 +249,7 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
  */
 int find_in_dir(int inumber, char const *sub_name) {
     insert_delay(); // simulate storage access delay to i-node with inumber
+//SECÇÃO CRÍTICA ESCRITA   
     if (!valid_inumber(inumber) ||
         inode_table[inumber].i_node_type != T_DIRECTORY) {
         return -1;
@@ -260,7 +269,7 @@ int find_in_dir(int inumber, char const *sub_name) {
             (strncmp(dir_entry[i].d_name, sub_name, MAX_FILE_NAME) == 0)) {
             return dir_entry[i].d_inumber;
         }
-
+//SECÇÃO CRÍTICA ESCRITA
     return -1;
 }
 
@@ -270,14 +279,16 @@ int find_in_dir(int inumber, char const *sub_name) {
  */
 int data_block_alloc() {
     for (int i = 0; i < DATA_BLOCKS; i++) {
+        
         if (i * (int) sizeof(allocation_state_t) % BLOCK_SIZE == 0) {
             insert_delay(); // simulate storage access delay to free_blocks
         }
-
+    //SECÇÃO CRÍTICA ESCRITA
         if (free_blocks[i] == FREE) {
             free_blocks[i] = TAKEN;
             return i;
         }
+    //SECÇÃO CRÍTICA ESCRITA
     }
     return -1;
 }
@@ -288,12 +299,13 @@ int data_block_alloc() {
  * Returns: 0 if success, -1 otherwise
  */
 int data_block_free(int block_number) {
+  //SECÇÃO CRÍTICA ESCRITA   
     if (!valid_block_number(block_number)) {
         return -1;
     }
-
     insert_delay(); // simulate storage access delay to free_blocks
     free_blocks[block_number] = FREE;
+ //SECÇÃO CRÍTICA ESCRITA
     return 0;
 }
 
@@ -303,12 +315,16 @@ int data_block_free(int block_number) {
  * Returns: pointer to the first byte of the block, NULL otherwise
  */
 void *data_block_get(int block_number) {
+ //SECÇÃO CRÍTICA LEITURA 
     if (!valid_block_number(block_number)) {
         return NULL;
     }
 
     insert_delay(); // simulate storage access delay to block
-    return &fs_data[block_number * BLOCK_SIZE];
+    void *block = &fs_data[block_number * BLOCK_SIZE];
+ //SECÇÃO CRÍTICA LEITURA   
+    return block;
+ 
 }
 
 /* Add new entry to the open file table
@@ -319,12 +335,14 @@ void *data_block_get(int block_number) {
  */
 int add_to_open_file_table(int inumber, size_t offset) {
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
+    //SECÇÃO CRÍTICA ESCRITA   
         if (free_open_file_entries[i] == FREE) {
             free_open_file_entries[i] = TAKEN;
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
             return i;
         }
+    //SECÇÃO CRÍTICA ESCRITA
     }
     return -1;
 }
@@ -335,11 +353,13 @@ int add_to_open_file_table(int inumber, size_t offset) {
  * Returns 0 is success, -1 otherwise
  */
 int remove_from_open_file_table(int fhandle) {
+//SECÇÃO CRÍTICA ESCRITA
     if (!valid_file_handle(fhandle) ||
         free_open_file_entries[fhandle] != TAKEN) {
         return -1;
     }
     free_open_file_entries[fhandle] = FREE;
+//SECÇÃO CRÍTICA ESCRITA    
     return 0;
 }
 
@@ -349,8 +369,11 @@ int remove_from_open_file_table(int fhandle) {
  * Returns: pointer to the entry if sucessful, NULL otherwise
  */
 open_file_entry_t *get_open_file_entry(int fhandle) {
+//SECÇÃO CRÍTICA LEITURA    
     if (!valid_file_handle(fhandle)) {
         return NULL;
     }
-    return &open_file_table[fhandle];
+    void *open_file_entry = &open_file_table[fhandle];
+//SECÇÃO CRÍTICA LEITURA
+    return open_file_entry;
 }
