@@ -5,6 +5,11 @@
 #include "state.h"
 #include <sys/types.h>
 
+typedef struct {
+    char* pth;    
+    int flg;
+} tfs_open_input;
+
 enum {
     TFS_O_CREAT = 0b001,
     TFS_O_TRUNC = 0b010,
@@ -49,7 +54,7 @@ int tfs_lookup(char const *name);
  *    - create file if it does not exist (TFS_O_CREAT)
  */
 int tfs_open(char const *name, int flags);
-
+void *tfs_open2(void *arg);
 /* Closes a file
  * Input:
  * 	- file handle (obtained from a previous call to tfs_open)
@@ -88,5 +93,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len);
  *.     Returns 0 if successful, -1 otherwise.
 */ 
 int tfs_copy_to_external_fs(char const *source_path, char const *dest_path);
+
+void print_dir(int n_entries);
 
 #endif // OPERATIONS_H

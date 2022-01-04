@@ -4,8 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
+
+pthread_mutex_t global_lock;
+int rtn_value;
+
 int tfs_init() {
     state_init();
+    pthread_mutex_init(&global_lock, NULL);
 
     /* create root inode */
     int root = inode_create(T_DIRECTORY);
@@ -17,6 +23,7 @@ int tfs_init() {
 }
 
 int tfs_destroy() {
+    pthread_mutex_destroy(&global_lock);
     state_destroy();
     return 0;
 }
@@ -37,6 +44,14 @@ int tfs_lookup(char const *name) {
     return find_in_dir(ROOT_DIR_INUM, name); 
 }
 
+
+//função teste
+void print_dir(int n_entries) {
+   print_dir_state(n_entries, ROOT_DIR_INUM);
+}
+//função teste
+
+
 int tfs_open(char const *name, int flags) { //MUTEX GLOBAL SÓ PARA CREATE
     int inum;
     size_t offset;
@@ -47,11 +62,14 @@ int tfs_open(char const *name, int flags) { //MUTEX GLOBAL SÓ PARA CREATE
     }
 //DÚVIDA: PERGUNTAR STOR, SOFIA, PEDRO.... 
 //SECÇÃO CRÍTICA início(para evitar que se criem dois inodes para o mesmo ficheiro, dá para melhorar paralelismo aqui?)
+    
+    pthread_mutex_lock(&global_lock);
     inum = tfs_lookup(name);
     if (inum >= 0) {
         /* The file already exists */
         inode_t *inode = inode_get(inum); 
         if (inode == NULL) {
+            pthread_mutex_unlock(&global_lock);
             return -1;
         }
 
@@ -60,6 +78,7 @@ int tfs_open(char const *name, int flags) { //MUTEX GLOBAL SÓ PARA CREATE
             if (inode->i_size > 0) {
                 for(int j = 0; j < INODE_BLOCKS_SIZE; j++) { 
                     if (data_block_free(inode->i_data_block[j]) == -1) {
+                        pthread_mutex_unlock(&global_lock);
                         return -1;
                     }
                 }
@@ -77,18 +96,23 @@ int tfs_open(char const *name, int flags) { //MUTEX GLOBAL SÓ PARA CREATE
         /* Create inode */
         inum = inode_create(T_FILE); 
         if (inum == -1) {
+            pthread_mutex_unlock(&global_lock);
             return -1;
         }
         /* Add entry in the root directory */
         if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) { 
             inode_delete(inum);
+            pthread_mutex_unlock(&global_lock);
             return -1;
         }
         offset = 0;
     } else {
+
+        pthread_mutex_unlock(&global_lock);
         return -1;
     }
 //SECÇÃO CRÍTICA fim (antes do return porque se pode abrir o ficheiro duas vezes)
+    pthread_mutex_unlock(&global_lock);
 
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
@@ -99,6 +123,91 @@ int tfs_open(char const *name, int flags) { //MUTEX GLOBAL SÓ PARA CREATE
      * opened but it remains created */
 }
 
+void *tfs_open2(void *arg) { //MUTEX GLOBAL SÓ PARA CREATE
+    tfs_open_input *input = (tfs_open_input*) arg;
+    char* name = input->pth;
+    int flags = input->flg;
+    int inum;
+    size_t offset;
+
+    pthread_mutex_lock(&global_lock);
+
+    /* Checks if the path name is valid */
+    if (!valid_pathname(name)) {
+        rtn_value = -1;
+        pthread_mutex_unlock(&global_lock);
+
+        return &rtn_value;
+    }
+//DÚVIDA: PERGUNTAR STOR, SOFIA, PEDRO.... 
+//SECÇÃO CRÍTICA início(para evitar que se criem dois inodes para o mesmo ficheiro, dá para melhorar paralelismo aqui?)
+    
+    inum = tfs_lookup(name);
+    if (inum >= 0) {
+        /* The file already exists */
+        inode_t *inode = inode_get(inum); 
+        if (inode == NULL) {
+            pthread_mutex_unlock(&global_lock);
+            rtn_value = -1;
+            return &rtn_value;
+        }
+
+        /* Trucate (if requested) */
+        if (flags & TFS_O_TRUNC) { //threads: em princípio sem problema porque é para limpar
+            if (inode->i_size > 0) {
+                for(int j = 0; j < INODE_BLOCKS_SIZE; j++) { 
+                    if (data_block_free(inode->i_data_block[j]) == -1) {
+                        pthread_mutex_unlock(&global_lock);
+                        rtn_value = -1;
+                        return &rtn_value;
+                    }
+                }
+                inode->i_size = 0;
+            }
+        }
+        /* Determine initial offset */
+        if (flags & TFS_O_APPEND) {
+            offset = inode->i_size;
+        } else {
+            offset = 0;
+        }
+    } else if (flags & TFS_O_CREAT) {
+        /* The file doesn't exist; the flags specify that it should be created*/
+        /* Create inode */
+        inum = inode_create(T_FILE); 
+        if (inum == -1) {
+            pthread_mutex_unlock(&global_lock);
+            rtn_value = -1;
+            return &rtn_value;
+        }
+        /* Add entry in the root directory */
+        if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) { 
+            inode_delete(inum);
+            pthread_mutex_unlock(&global_lock);
+            rtn_value = -1;
+            return &rtn_value;
+        }
+        offset = 0;
+    } else {
+
+        pthread_mutex_unlock(&global_lock);
+        rtn_value = -1;
+        return &rtn_value;
+    }
+//SECÇÃO CRÍTICA fim (antes do return porque se pode abrir o ficheiro duas vezes)
+    pthread_mutex_unlock(&global_lock);
+
+    /* Finally, add entry to the open file table and
+     * return the corresponding handle */
+    
+    rtn_value = add_to_open_file_table(inum, offset);
+    return &rtn_value;
+    //return add_to_open_file_table(inum, offset);
+
+    /* Note: for simplification, if file was created with TFS_O_CREAT and there
+     * is an error adding an entry to the open file table, the file is not
+     * opened but it remains created */
+}
 
 int tfs_close(int fhandle) { return remove_from_open_file_table(fhandle); }
 

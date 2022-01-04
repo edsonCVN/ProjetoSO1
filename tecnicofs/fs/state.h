@@ -24,7 +24,7 @@ typedef struct {
     inode_type i_node_type;
     size_t i_size;
     int i_data_block[INODE_BLOCKS_SIZE];
-    pthread_rwlock_t rwlock;
+    pthread_rwlock_t i_rwlock;
     
 } inode_t;
 
@@ -50,6 +50,8 @@ inode_t *inode_get(int inumber);
 int clear_dir_entry(int inumber, int sub_inumber);
 int add_dir_entry(int inumber, int sub_inumber, char const *sub_name);
 int find_in_dir(int inumber, char const *sub_name);
+
+void print_dir_state(int n_entries, int inumber) ;
 
 int data_block_alloc();
 int data_block_free(int block_number);

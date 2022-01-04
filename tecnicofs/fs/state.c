@@ -6,6 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 /* Persistent FS state  (in reality, it should be maintained in secondary
  * memory; for simplicity, this project maintains it in primary memory) */
 
@@ -33,6 +35,7 @@ static inline bool valid_block_number(int block_number) {
 static inline bool valid_file_handle(int file_handle) {
     return file_handle >= 0 && file_handle < MAX_OPEN_FILES;
 }
+
 
 /**
  * We need to defeat the optimizer for the insert_delay() function.
@@ -76,10 +79,19 @@ void state_init() {
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         free_open_file_entries[i] = FREE;
     }
+
+
 }
 
-void state_destroy() { /* nothing to do */
+void state_destroy() {
+    
 }
+
+/* está retornar int...
+pthread_mutex_t *get_global_lock() {
+    return &global_lock;
+}
+*/
 
 /*
  * Creates a new i-node in the i-node table.
@@ -88,9 +100,9 @@ void state_destroy() { /* nothing to do */
  * Returns:
  *  new i-node's number if successfully created, -1 otherwise
  */
-int inode_create(inode_type n_type) {
-    for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
+int inode_create(inode_type n_type) {    
 
+    for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
         if ((inumber * (int) sizeof(allocation_state_t) % BLOCK_SIZE) == 0) {
             insert_delay(); // simulate storage access delay (to freeinode_ts)
         }
@@ -102,6 +114,7 @@ int inode_create(inode_type n_type) {
             freeinode_ts[inumber] = TAKEN;
             insert_delay(); // simulate storage access delay (to i-node)
             inode_table[inumber].i_node_type = n_type;
+            pthread_rwlock_init(&inode_table[inumber].i_rwlock, NULL); 
 
             if (n_type == T_DIRECTORY) {
                 /* Initializes directory (filling its block with empty
@@ -146,7 +159,7 @@ int inode_create(inode_type n_type) {
  * Returns: 0 if successful, -1 if failed
  */
 int inode_delete(int inumber) {
-    // simulate storage access delay (to i-node and freeinode_ts)
+// simulate storage access delay (to i-node and freeinode_ts)
     insert_delay();
     insert_delay();
 
@@ -271,6 +284,34 @@ int find_in_dir(int inumber, char const *sub_name) {
         }
 //SECÇÃO CRÍTICA ESCRITA
     return -1;
+}
+
+void print_dir_state(int n_entries, int inumber) {
+     insert_delay(); // simulate storage access delay to i-node with inumber
+//SECÇÃO CRÍTICA ESCRITA   
+    if (!valid_inumber(inumber) ||
+        inode_table[inumber].i_node_type != T_DIRECTORY) {
+        return;
+    }
+
+    /* Locates the block containing the directory's entries */
+    dir_entry_t *dir_entry =
+        (dir_entry_t *)data_block_get(inode_table[inumber].i_data_block[0]);
+    if (dir_entry == NULL) {
+        return;
+    }
+
+    /* Iterates over the directory entries looking for one that has the target
+     * name */
+    for (int i = 0; i < n_entries; i++) {
+        if ((dir_entry[i].d_inumber != -1)) {
+            printf("inum: %d: %s\n", i, dir_entry[i].d_name);
+        } else {
+            printf("i vazio: %d\n", i);
+            //return;
+        }
+    }
+//SECÇÃO CRÍTICA ESCRITA
 }
 
 /*

@@ -29,13 +29,13 @@ CFLAGS += -fdiagnostics-color=always -Wall -Werror -Wextra -Wcast-align -Wconver
 # Warning suppressions
 CFLAGS += -Wno-sign-compare
 
+LDFLAGS += -lpthread -pthread
 # optional debug symbols: run make DEBUG=no to deactivate them
 ifneq ($(strip $(DEBUG)), no)
-  CFLAGS += -g
-  LDFLAGS += -lpthread
+  CFLAGS += -g 
   CFLAGS += -fsanitize=thread
-	LDFLAGS += -fsanitize=thread
-	CXXFLAGS = -fsanitize=thread
+  LDFLAGS += -fsanitize=thread
+  CXXFLAGS = -fsanitize=thread
 endif
 
 # optional O3 optimization symbols: run make OPTIM=no to deactivate them
