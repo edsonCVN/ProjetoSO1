@@ -12,8 +12,12 @@ int main() {
 
     int f;
     ssize_t r;
+    tfs_open_paramts paramts;
+    paramts.pth = path;
+    paramts.flg = TFS_O_CREAT;
 
-    f = tfs_open(path, TFS_O_CREAT);
+    tfs_open((void*)&paramts);
+    f = paramts.rtn_value;
     assert(f != -1);
 
     r = tfs_write(f, str, strlen(str));
@@ -21,7 +25,9 @@ int main() {
 
     assert(tfs_close(f) != -1);
 
-    f = tfs_open(path, 0);
+    paramts.flg = 0;
+    tfs_open((void*)&paramts);
+    f = paramts.rtn_value;
     assert(f != -1);
 
     r = tfs_read(f, buffer, sizeof(buffer) - 1);
@@ -31,7 +37,7 @@ int main() {
     assert(strcmp(buffer, str) == 0);
 
     assert(tfs_close(f) != -1);
-
+    assert(tfs_destroy() != -1);
     printf("Successful test.\n");
 
     return 0;

@@ -21,34 +21,41 @@ int main() {
     */
     char input[SIZE]; 
     memset(input, 'A', SIZE);
-
+    int fd;
     char output [SIZE];
 
     assert(tfs_init() != -1);
 
     /* Write input COUNT times into a new file */
-    int fd = tfs_open(path, TFS_O_CREAT);
+
+
+    tfs_open_paramts paramts;
+    paramts.pth = path;
+    paramts.flg = TFS_O_CREAT;
+
+    tfs_open((void*)&paramts);
+    fd = paramts.rtn_value;
     assert(fd != -1);
+
     for (int i = 0; i < COUNT; i++) {
         assert(tfs_write(fd, input, SIZE) == SIZE);
     }
     assert(tfs_close(fd) != -1);
 
     /* Open again to check if contents are as expected */
-    fd = tfs_open(path, 0);
-    assert(fd != -1 );
+    paramts.flg = 0;
+    tfs_open((void*)&paramts);
+    fd = paramts.rtn_value;
+    assert(fd != -1);
 
     for (int i = 0; i < COUNT; i++) {
-        //printf("\n\n%d\n\n", i);
         assert(tfs_read(fd, output, SIZE) == SIZE);
-        //printf("\ninput -> %s/nlen: %ld", input, strlen(input));
-        //printf("\noutput-> %s/nlen: %ld", output, strlen(output));
-        //printf("\n\naaa%d", memcmp(input, output, SIZE));
+
         assert (memcmp(input, output, SIZE) == 0);
     }
 
     assert(tfs_close(fd) != -1);
-
+    assert(tfs_destroy() != -1);
 
     printf("Sucessful test\n");
 

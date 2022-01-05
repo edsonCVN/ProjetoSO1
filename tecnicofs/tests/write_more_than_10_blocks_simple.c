@@ -17,7 +17,7 @@
 int main() {
 
     char *path = "/f1";
-
+    int fd;
     /* Writing this buffer multiple times to a file stored on 1KB blocks will 
        always hit a single block (since 1KB is a multiple of SIZE=256) */
     char input[SIZE]; 
@@ -28,7 +28,12 @@ int main() {
     assert(tfs_init() != -1);
 
     /* Write input COUNT times into a new file */
-    int fd = tfs_open(path, TFS_O_CREAT);
+    tfs_open_paramts paramts;
+    paramts.pth = path;
+    paramts.flg = TFS_O_CREAT;
+
+    tfs_open((void*)&paramts);
+    fd = paramts.rtn_value;
     assert(fd != -1);
     for (int i = 0; i < COUNT; i++) {
         assert(tfs_write(fd, input, SIZE) == SIZE);
@@ -36,8 +41,10 @@ int main() {
     assert(tfs_close(fd) != -1);
 
     /* Open again to check if contents are as expected */
-    fd = tfs_open(path, 0);
-    assert(fd != -1 );
+    paramts.flg = 0;
+    tfs_open((void*)&paramts);
+    fd = paramts.rtn_value;
+    assert(fd != -1);
 
     for (int i = 0; i < COUNT; i++) {
         assert(tfs_read(fd, output, SIZE) == SIZE);
@@ -45,7 +52,7 @@ int main() {
     }
 
     assert(tfs_close(fd) != -1);
-
+    assert(tfs_destroy() != -1);
 
     printf("Sucessful test\n");
 

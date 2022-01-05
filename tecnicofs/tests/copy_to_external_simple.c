@@ -9,10 +9,15 @@ int main() {
     char *path = "/f1";
     char *path2 = "external_file.txt";
     char to_read[40];
-
+    int file;
     assert(tfs_init() != -1);
 
-    int file = tfs_open(path, TFS_O_CREAT);
+    tfs_open_paramts paramts;
+    paramts.pth = path;
+    paramts.flg = TFS_O_CREAT;
+
+    tfs_open((void*)&paramts);
+    file = paramts.rtn_value;
     assert(file != -1);
 
     assert(tfs_write(file, str, strlen(str)) != -1);
@@ -30,7 +35,7 @@ int main() {
     assert(strcmp(str, to_read) == 0);
 
     assert(fclose(fp) != -1);
-
+    assert(tfs_destroy() != -1);
     unlink(path2);
 
     printf("Successful test.\n");

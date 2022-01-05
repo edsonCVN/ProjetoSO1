@@ -25,7 +25,7 @@ typedef struct {
     size_t i_size;
     int i_data_block[INODE_BLOCKS_SIZE];
     pthread_rwlock_t i_rwlock;
-    
+
 } inode_t;
 
 typedef enum { FREE = 0, TAKEN = 1 } allocation_state_t;
@@ -51,7 +51,7 @@ int clear_dir_entry(int inumber, int sub_inumber);
 int add_dir_entry(int inumber, int sub_inumber, char const *sub_name);
 int find_in_dir(int inumber, char const *sub_name);
 
-void print_dir_state(int n_entries, int inumber) ;
+void print_dir_state(int n_entries, int inumber);
 
 int data_block_alloc();
 int data_block_free(int block_number);
