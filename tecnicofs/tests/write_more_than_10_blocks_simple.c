@@ -25,15 +25,18 @@ int main() {
 
     char output [SIZE];
 
+    tfs_open_paramts open_paramts;
+    tfs_write_paramts write_paramts;
+    tfs_read_paramts read_paramts;
     assert(tfs_init() != -1);
 
     /* Write input COUNT times into a new file */
-    tfs_open_paramts paramts;
-    paramts.pth = path;
-    paramts.flg = TFS_O_CREAT;
+    
+    open_paramts.pth = path;
+    open_paramts.flg = TFS_O_CREAT;
 
-    tfs_open((void*)&paramts);
-    fd = paramts.rtn_value;
+    tfs_open((void*)&open_paramts);
+    fd = open_paramts.rtn_value;
     assert(fd != -1);
     for (int i = 0; i < COUNT; i++) {
         assert(tfs_write(fd, input, SIZE) == SIZE);
@@ -41,9 +44,9 @@ int main() {
     assert(tfs_close(fd) != -1);
 
     /* Open again to check if contents are as expected */
-    paramts.flg = 0;
-    tfs_open((void*)&paramts);
-    fd = paramts.rtn_value;
+    open_paramts.flg = 0;
+    tfs_open((void*)&open_paramts);
+    fd = open_paramts.rtn_value;
     assert(fd != -1);
 
     for (int i = 0; i < COUNT; i++) {

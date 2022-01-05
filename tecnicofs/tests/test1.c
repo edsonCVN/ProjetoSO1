@@ -11,29 +11,39 @@ int main() {
     assert(tfs_init() != -1);
 
     int f;
-    ssize_t r;
-    tfs_open_paramts paramts;
-    paramts.pth = path;
-    paramts.flg = TFS_O_CREAT;
+    tfs_open_paramts open_paramts;
+    tfs_write_paramts write_paramts;
+    tfs_read_paramts read_paramts;
+    
+    open_paramts.pth = path;
+    open_paramts.flg = TFS_O_CREAT;
 
-    tfs_open((void*)&paramts);
-    f = paramts.rtn_value;
+    tfs_open((void*)&open_paramts);
+    f = open_paramts.rtn_value;
     assert(f != -1);
-
-    r = tfs_write(f, str, strlen(str));
-    assert(r == strlen(str));
+   
+    write_paramts.fhandle = f;
+    write_paramts.buffer = str;
+    write_paramts.to_write = strlen(str);
+    
+    tfs_write((void*)&write_paramts);
+    assert(write_paramts.rtn_value == strlen(str));
 
     assert(tfs_close(f) != -1);
 
-    paramts.flg = 0;
-    tfs_open((void*)&paramts);
-    f = paramts.rtn_value;
+    open_paramts.flg = 0;
+    tfs_open((void*)&open_paramts);
+    f = open_paramts.rtn_value;
     assert(f != -1);
 
-    r = tfs_read(f, buffer, sizeof(buffer) - 1);
-    assert(r == strlen(str));
+    read_paramts.fhandle = f;
+    read_paramts.buffer = buffer;
+    read_paramts.len = sizeof(buffer) - 1;
+    
+    tfs_read((void*)&read_paramts);
+    assert(read_paramts.rtn_value == strlen(str));
 
-    buffer[r] = '\0';
+    buffer[read_paramts.rtn_value] = '\0';
     assert(strcmp(buffer, str) == 0);
 
     assert(tfs_close(f) != -1);

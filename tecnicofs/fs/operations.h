@@ -113,7 +113,7 @@ void *tfs_read(void *arg);
  *.       is created it needed, and overwritten if it already exists
  *.     Returns 0 if successful, -1 otherwise.
 */ 
-int tfs_copy_to_external_fs(char const *source_path, char const *dest_path);
+void *tfs_copy_to_external_fs(void *arg);
 
 void print_dir(int n_entries);
 

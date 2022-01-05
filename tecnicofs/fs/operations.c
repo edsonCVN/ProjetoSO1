@@ -311,7 +311,8 @@ void *tfs_read(void *arg) {
     // SECÇÃO CRITICA ESCRITA
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
-        return -1;
+        paramts->rtn_value = -1;
+        return NULL;
     }
 
     /* From the open file table entry, we get the inode */
@@ -424,10 +425,10 @@ void *tfs_read(void *arg) {
     return NULL;
 }
 
-int tfs_copy_to_external_fs(void *arg) {
+void *tfs_copy_to_external_fs(void *arg) {
     tfs_copy_to_external_paramts *paramts = (tfs_copy_to_external_paramts *)arg;
     char const *src_path = paramts->src_path;
-    char const *dest_path = paramts->ddest_path;
+    char const *dest_path = paramts->dest_path;
     char buffer[BLOCK_SIZE];
     ssize_t bytes_read = 0;
     int error = 0;
@@ -443,13 +444,15 @@ int tfs_copy_to_external_fs(void *arg) {
     int src_file = src_open_paramts.rtn_value;
 
     if (src_file == -1) {
-        return -1;
+        paramts->rtn_value = -1;
+        return NULL;
     }
 
     FILE *dest_fp = fopen(dest_path, "w");
     if (dest_fp == NULL) {
         tfs_close(src_file);
-        return -1;
+        paramts->rtn_value = -1;
+        return NULL;
     }
     //Feeding tfs_read paramts
     src_read_paramts.fhandle = src_file;
@@ -470,7 +473,9 @@ int tfs_copy_to_external_fs(void *arg) {
     error += fclose(dest_fp);
     // SECÇÃO CRITICA ESCRITA
     if (error != 0) {
-        return -1;
+        paramts->rtn_value = -1;
+        return NULL;
     }
-    return 0;
+    paramts->rtn_value = 0;
+    return NULL;;
 }

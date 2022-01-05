@@ -10,14 +10,18 @@ int main() {
     char *path2 = "external_file.txt";
     char to_read[40];
     int file;
+    tfs_open_paramts open_paramts;
+    tfs_write_paramts write_paramts;
+    tfs_read_paramts read_paramts;
+    tfs_copy_to_external_paramts copy_paramts;
     assert(tfs_init() != -1);
 
-    tfs_open_paramts paramts;
-    paramts.pth = path;
-    paramts.flg = TFS_O_CREAT;
+    
+    open_paramts.pth = path;
+    open_paramts.flg = TFS_O_CREAT;
 
-    tfs_open((void*)&paramts);
-    file = paramts.rtn_value;
+    tfs_open((void*)&open_paramts);
+    file = open_paramts.rtn_value;
     assert(file != -1);
 
     assert(tfs_write(file, str, strlen(str)) != -1);

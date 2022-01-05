@@ -30,11 +30,12 @@ tfs_open Trucate
     2) não está preparado para aceder ao bloco indireto.
 
 
-0  1  2  3  4  5  6  7  8  9  10(indireto) (índices de i_data_block[])
-2  3  5  7 -1 -1 -1 -1 -1 -1 -1
-
-
-perguntar ao stor na 5a: como aceder/utilizar os valores de retorno do pthread_join
-
+perguntar ao stor na 5a: 
+    como aceder/utilizar os valores de retorno do pthread_join;
+    pedir opinião sobre a granulidade dos nossos trincos;
+    copy_to_external: como aplicar trincos de forma a só dar lock de escrita quando a segunda thread tiver o mesmo dest_path e de forma a que uma segunda thread não consiga alterar o source_path;
+    
 
 ATUALIZAR AS ASSINATURAS DO .h
+
+deveriamos criar funcções para inicializar as estruturas de parametros.. (para evitar que o esqeucimento faça com que código lixo se propague)
