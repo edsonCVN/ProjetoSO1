@@ -60,40 +60,42 @@ int tfs_open(char const *name, int flags){
     int rtn_value;
     size_t offset;
 
-    inode_t *root_inode = inode_get(ROOT_DIR_INUM);
-
-    pthread_rwlock_wrlock(&root_inode->i_rwlock);
-
     /* Checks if the path name is valid */
     if (!valid_pathname(name)) {
-        
-        pthread_rwlock_unlock(&root_inode->i_rwlock);
         return -1;
     }
 
-    inum = tfs_lookup(name);
-    if (inum >= 0) {
+    inum = tfs_lookup(name); //A ASSUMIR QUE tfs_lookup é thread-safe
+    if (inum >= 0) { //testar este if (thread-safety)
         /* The file already exists */
         inode_t *inode = inode_get(inum);
         if (inode == NULL) {
-            pthread_rwlock_unlock(&root_inode->i_rwlock);
-
             return -1;
         }
-
+        
         /* Trucate (if requested) */
-        if (flags & TFS_O_TRUNC) { // threads: em princípio sem problema porque
-                                   // é para limpar
+        if (flags & TFS_O_TRUNC) { //dar fix ao for e testar thread-safety
             if (inode->i_size > 0) {
-                for (int j = 0; j < INODE_BLOCKS_SIZE; j++) {
+                pthread_rwlock_wrlock(&inode->i_rwlock);
+                size_t to_delete = inode->i_size;
+                for (int j = 0; j < INODE_BLOCKS_SIZE && to_delete < BLOCK_SIZE; j++) {
                     if (data_block_free(inode->i_data_block[j]) == -1) {
-
-                        pthread_rwlock_unlock(&root_inode->i_rwlock);
-
+                        pthread_rwlock_unlock(&inode->i_rwlock);
                         return -1;
+                    }
+                    to_delete -= BLOCK_SIZE;
+                    if(j == INDIRECT_BLOCK_INDEX) {
+                        int *indirect_block = data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
+                        if (indirect_block == NULL) {
+                            break; //ainda não foi utilizado
+                        }
+                        for(int ind_j = 0; ind_j < BLOCK_SIZE / sizeof(int); ind_j++){
+                            //falta
+                        }
                     }
                 }
                 inode->i_size = 0;
+                pthread_rwlock_unlock(&inode->i_rwlock);
             }
         }
         /* Determine initial offset */
@@ -103,34 +105,33 @@ int tfs_open(char const *name, int flags){
             offset = 0;
         }
     } else if (flags & TFS_O_CREAT) {
+        inode_t *root_inode = inode_get(ROOT_DIR_INUM);
+        pthread_rwlock_wrlock(&root_inode->i_rwlock);
         /* The file doesn't exist; the flags specify that it should be created*/
         /* Create inode */
         inum = inode_create(T_FILE);
         if (inum == -1) {
-
             pthread_rwlock_unlock(&root_inode->i_rwlock);
-
             return -1;
         }
         /* Add entry in the root directory */
         if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
             inode_delete(inum);
-
             pthread_rwlock_unlock(&root_inode->i_rwlock);
-
             return -1;
         }
         offset = 0;
-    } else {
         pthread_rwlock_unlock(&root_inode->i_rwlock);
+    } else {
+        //pthread_rwlock_unlock(&root_inode->i_rwlock);
 
         return -1;
     }
     // SECÇÃO CRÍTICA fim (antes do return porque se pode abrir o ficheiro duas
     // vezes) 
 
-    rtn_value = add_to_open_file_table(inum, offset);
-    pthread_rwlock_unlock(&root_inode->i_rwlock);
+    rtn_value = add_to_open_file_table(inum, offset); //assumindo thread-safe...
+    //pthread_rwlock_unlock(&root_inode->i_rwlock);
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
 

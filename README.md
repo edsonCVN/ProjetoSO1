@@ -1,4 +1,4 @@
-# ProjectoSO1
+ # ProjectoSO1
 29/12/2021
 
     verificar funcionamento correto das diretorias
@@ -48,7 +48,7 @@ resumo do horário de dúvidas:
 
     usar trincos para as estruturas partilhadas do state.c
 
-    testar tfs open com + de 5 threads
+    testar tfs open com + de 5 threads (DONE!)
 
     criar função que dá um novo trinco (mutex) a cada dest_path diferente
         a utlizar no início do "do"  da função copy_to_external
