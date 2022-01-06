@@ -34,12 +34,17 @@ int main() {
     
     open_paramts.pth = path;
     open_paramts.flg = TFS_O_CREAT;
-
     tfs_open((void*)&open_paramts);
     fd = open_paramts.rtn_value;
     assert(fd != -1);
+    
+    write_paramts.fhandle = fd;
+    write_paramts.buffer = input;
+    write_paramts.to_write = SIZE;
+    
     for (int i = 0; i < COUNT; i++) {
-        assert(tfs_write(fd, input, SIZE) == SIZE);
+        tfs_write((void *)&write_paramts);
+        assert(write_paramts.rtn_value == SIZE);
     }
     assert(tfs_close(fd) != -1);
 
@@ -49,8 +54,12 @@ int main() {
     fd = open_paramts.rtn_value;
     assert(fd != -1);
 
+    read_paramts.fhandle = fd;
+    read_paramts.buffer = output;
+    read_paramts.len = SIZE;
     for (int i = 0; i < COUNT; i++) {
-        assert(tfs_read(fd, output, SIZE) == SIZE);
+        tfs_read((void*)&read_paramts);
+        assert(read_paramts.rtn_value == SIZE);
         assert (memcmp(input, output, SIZE) == 0);
     }
 

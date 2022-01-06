@@ -31,9 +31,9 @@ tfs_open Trucate
 
 
 perguntar ao stor na 5a: 
-    como aceder/utilizar os valores de retorno do pthread_join;
-    pedir opinião sobre a granulidade dos nossos trincos;
-    copy_to_external: como aplicar trincos de forma a só dar lock de escrita quando a segunda thread tiver o mesmo dest_path e de forma a que uma segunda thread não consiga alterar o source_path;
+    -como aceder/utilizar os valores de retorno do pthread_join;
+    -pedir opinião sobre a granulidade dos nossos trincos;
+    -copy_to_external: como aplicar trincos de forma a só dar lock de escrita quando a segunda thread tiver o mesmo dest_path e de forma a que uma segunda thread não consiga alterar o source_path;
     
 
 ATUALIZAR AS ASSINATURAS DO .h
