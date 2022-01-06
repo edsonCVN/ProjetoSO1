@@ -54,11 +54,10 @@ int tfs_lookup(char const *name) {
 void print_dir(int n_entries) { print_dir_state(n_entries, ROOT_DIR_INUM); }
 // função teste
 
-void *tfs_open(void *arg) {
-    tfs_open_paramts *paramts = (tfs_open_paramts *)arg;
-    char const *name = paramts->pth;
-    int flags = paramts->flg;
+int tfs_open(char const *name, int flags){
+    
     int inum;
+    int rtn_value;
     size_t offset;
 
     inode_t *root_inode = inode_get(ROOT_DIR_INUM);
@@ -67,10 +66,9 @@ void *tfs_open(void *arg) {
 
     /* Checks if the path name is valid */
     if (!valid_pathname(name)) {
-        paramts->rtn_value = -1;
+        
         pthread_rwlock_unlock(&root_inode->i_rwlock);
-
-        return NULL;
+        return -1;
     }
 
     inum = tfs_lookup(name);
@@ -78,10 +76,9 @@ void *tfs_open(void *arg) {
         /* The file already exists */
         inode_t *inode = inode_get(inum);
         if (inode == NULL) {
-            paramts->rtn_value = -1;
             pthread_rwlock_unlock(&root_inode->i_rwlock);
 
-            return NULL;
+            return -1;
         }
 
         /* Trucate (if requested) */
@@ -91,10 +88,9 @@ void *tfs_open(void *arg) {
                 for (int j = 0; j < INODE_BLOCKS_SIZE; j++) {
                     if (data_block_free(inode->i_data_block[j]) == -1) {
 
-                        paramts->rtn_value = -1;
                         pthread_rwlock_unlock(&root_inode->i_rwlock);
 
-                        return NULL;
+                        return -1;
                     }
                 }
                 inode->i_size = 0;
@@ -112,38 +108,33 @@ void *tfs_open(void *arg) {
         inum = inode_create(T_FILE);
         if (inum == -1) {
 
-            paramts->rtn_value = -1;
             pthread_rwlock_unlock(&root_inode->i_rwlock);
 
-            return NULL;
+            return -1;
         }
         /* Add entry in the root directory */
         if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
             inode_delete(inum);
 
-            paramts->rtn_value = -1;
-
             pthread_rwlock_unlock(&root_inode->i_rwlock);
 
-            return NULL;
+            return -1;
         }
         offset = 0;
     } else {
-        paramts->rtn_value = -1;
         pthread_rwlock_unlock(&root_inode->i_rwlock);
 
-        return NULL;
+        return -1;
     }
     // SECÇÃO CRÍTICA fim (antes do return porque se pode abrir o ficheiro duas
-    // vezes)
+    // vezes) 
+
+    rtn_value = add_to_open_file_table(inum, offset);
     pthread_rwlock_unlock(&root_inode->i_rwlock);
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
 
-    paramts->rtn_value = add_to_open_file_table(inum, offset);
-    return NULL;
-
-    // return add_to_open_file_table(inum, offset);
+    return rtn_value;
 
     /* Note: for simplification, if file was created with TFS_O_CREAT and there
      * is an error adding an entry to the open file table, the file is not
@@ -152,17 +143,12 @@ void *tfs_open(void *arg) {
 
 int tfs_close(int fhandle) { return remove_from_open_file_table(fhandle); }
 
-void *tfs_write (void *arg) {
-    tfs_write_paramts *paramts = (tfs_write_paramts *)arg;
-    int fhandle = paramts->fhandle;
-    void const *buffer = paramts->buffer;
-    size_t to_write = paramts->to_write;
+ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 
     // SECÇÃO CRITICA ESCRITA
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
-        paramts->rtn_value = -1;
-        return NULL;
+        return -1;
     }
 
     /* From the open file table entry, we get the inode */
@@ -171,9 +157,8 @@ void *tfs_write (void *arg) {
     pthread_rwlock_wrlock(&inode->i_rwlock);
 
     if (inode == NULL) {
-        paramts->rtn_value = -1;
         pthread_rwlock_unlock(&inode->i_rwlock);
-        return NULL;
+        return -1;
     }
 
     size_t size_to_write = to_write;
@@ -206,9 +191,8 @@ void *tfs_write (void *arg) {
 
                     void *block = data_block_get(inode->i_data_block[j]);
                     if (block == NULL) {
-                        paramts->rtn_value = -1;
                         pthread_rwlock_unlock(&inode->i_rwlock);
-                        return NULL;
+                        return -1;
                     }
 
                     /* Perform the actual write */
@@ -235,9 +219,8 @@ void *tfs_write (void *arg) {
                 int *indirect_block =
                     data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
                 if (indirect_block == NULL) {
-                    paramts->rtn_value = -1;
                     pthread_rwlock_unlock(&inode->i_rwlock);
-                    return NULL;
+                    return -1;
                 }
                 // inicialização das referencias dentro do bloco indireto
 
@@ -250,9 +233,8 @@ void *tfs_write (void *arg) {
             int *indirect_block =
                 data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
             if (indirect_block == NULL) {
-                paramts->rtn_value = -1;
                 pthread_rwlock_unlock(&inode->i_rwlock);
-                return NULL;
+                return -1;
             }
 
             size_t indirect_i = (file->of_offset - BLOCK_SIZE * 10) /
@@ -279,9 +261,8 @@ void *tfs_write (void *arg) {
 
                     void *block = data_block_get(indirect_block[i]);
                     if (block == NULL) {
-                        paramts->rtn_value = -1;
                         pthread_rwlock_unlock(&inode->i_rwlock);
-                        return NULL;
+                        return -1;
                     }
                     memcpy(block + block_offset, buffer + size_written,
                            to_write);
@@ -297,22 +278,16 @@ void *tfs_write (void *arg) {
         }
     }
     // SECÇÃO CRITICA ESCRITA
-    paramts->rtn_value = (ssize_t)size_written;
     pthread_rwlock_unlock(&inode->i_rwlock);
-    return NULL;
+    return (ssize_t)size_written;
 }
 
-void *tfs_read(void *arg) {
-    tfs_read_paramts *paramts = (tfs_read_paramts *)arg;
-    int fhandle = paramts->fhandle;
-    void *buffer = paramts->buffer;
-    size_t len = paramts->len;
-
+ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
+    
     // SECÇÃO CRITICA ESCRITA
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
-        paramts->rtn_value = -1;
-        return NULL;
+        return -1;
     }
 
     /* From the open file table entry, we get the inode */
@@ -321,9 +296,8 @@ void *tfs_read(void *arg) {
     pthread_rwlock_rdlock(&inode->i_rwlock);
     
     if (inode == NULL) {
-        paramts->rtn_value = -1;
         pthread_rwlock_unlock(&inode->i_rwlock);
-        return NULL;
+        return -1;
     }
 
     /* Determine how many bytes to read */
@@ -344,9 +318,8 @@ void *tfs_read(void *arg) {
                 char *block = (char *)data_block_get(inode->i_data_block[j]);
 
                 if (block == NULL) {
-                    paramts->rtn_value = -1;
                     pthread_rwlock_unlock(&inode->i_rwlock);
-                    return NULL;
+                    return -1;
                 }
 
                 /* Perform the actual read */
@@ -375,9 +348,8 @@ void *tfs_read(void *arg) {
             int *indirect_block =
                 data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
             if (indirect_block == NULL) {
-                paramts->rtn_value = -1;
                 pthread_rwlock_unlock(&inode->i_rwlock);
-                return NULL;
+                return -1;
             }
 
             size_t first_indirect_i =
@@ -390,9 +362,8 @@ void *tfs_read(void *arg) {
                 char *block = (char *)data_block_get(indirect_block[i]);
 
                 if (block == NULL) {
-                    paramts->rtn_value = -1;
                     pthread_rwlock_unlock(&inode->i_rwlock);
-                    return NULL;
+                    return -1;
                 }
 
                 /* Perform the actual read */
@@ -420,48 +391,32 @@ void *tfs_read(void *arg) {
         }
     }
     // SECÇÃO CRITICA ESCRITA
-    paramts->rtn_value = (ssize_t)read;
     pthread_rwlock_unlock(&inode->i_rwlock);
-    return NULL;
+    return (ssize_t)read;
 }
 
-void *tfs_copy_to_external_fs(void *arg) {
-    tfs_copy_to_external_paramts *paramts = (tfs_copy_to_external_paramts *)arg;
-    char const *src_path = paramts->src_path;
-    char const *dest_path = paramts->dest_path;
+int tfs_copy_to_external_fs(char const *src_path, char const *dest_path) {
+    
     char buffer[BLOCK_SIZE];
     ssize_t bytes_read = 0;
     int error = 0;
     // SECÇÃO CRITICA ESCRITA
-    tfs_open_paramts src_open_paramts;
-    src_open_paramts.pth = src_path;
-    src_open_paramts.flg = 0;
 
-    tfs_read_paramts src_read_paramts;
-
-    tfs_open((void *)&src_open_paramts);
-
-    int src_file = src_open_paramts.rtn_value;
+    int src_file = tfs_open(src_path, 0);
 
     if (src_file == -1) {
-        paramts->rtn_value = -1;
-        return NULL;
+        return -1;
     }
 
     FILE *dest_fp = fopen(dest_path, "w");
     if (dest_fp == NULL) {
         tfs_close(src_file);
-        paramts->rtn_value = -1;
-        return NULL;
+        return -1;
     }
-    //Feeding tfs_read paramts
-    src_read_paramts.fhandle = src_file;
-    src_read_paramts.buffer = buffer;
-    src_read_paramts.len = BLOCK_SIZE;
-
+   
+    //trinco global
     do {
-        tfs_read((void*)&src_read_paramts);
-        bytes_read = src_read_paramts.rtn_value;
+        bytes_read = tfs_read(src_file, buffer, BLOCK_SIZE);
         if (bytes_read == -1 ||
             bytes_read !=
                 fwrite(buffer, sizeof(char), (size_t)bytes_read, dest_fp)) {
@@ -473,9 +428,7 @@ void *tfs_copy_to_external_fs(void *arg) {
     error += fclose(dest_fp);
     // SECÇÃO CRITICA ESCRITA
     if (error != 0) {
-        paramts->rtn_value = -1;
-        return NULL;
+        return -1;
     }
-    paramts->rtn_value = 0;
-    return NULL;;
+    return 0;
 }

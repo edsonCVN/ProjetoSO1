@@ -34,8 +34,24 @@ perguntar ao stor na 5a:
     -como aceder/utilizar os valores de retorno do pthread_join;
     -pedir opinião sobre a granulidade dos nossos trincos;
     -copy_to_external: como aplicar trincos de forma a só dar lock de escrita quando a segunda thread tiver o mesmo dest_path e de forma a que uma segunda thread não consiga alterar o source_path;
+    -necessidade/importância de pôr o tfs_destroy thread-safe
     
 
 ATUALIZAR AS ASSINATURAS DO .h
 
 deveriamos criar funcções para inicializar as estruturas de parametros.. (para evitar que o esqeucimento faça com que código lixo se propague)
+
+
+
+resumo do horário de dúvidas:
+    cumprir api no enunciado dentro do operations.c +  criar funções intermédias que utilizem as estruturas (DONE!)
+
+    usar trincos para as estruturas partilhadas do state.c
+
+    testar tfs open com + de 5 threads
+
+    criar função que dá um novo trinco (mutex) a cada dest_path diferente
+        a utlizar no início do "do"  da função copy_to_external
+
+    tfs_open: usar trinco na verificação e operação (criar igual verificação para cada operação para aumentar paralelismo)
+

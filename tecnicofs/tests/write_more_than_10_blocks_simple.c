@@ -17,7 +17,7 @@
 int main() {
 
     char *path = "/f1";
-    int fd;
+
     /* Writing this buffer multiple times to a file stored on 1KB blocks will 
        always hit a single block (since 1KB is a multiple of SIZE=256) */
     char input[SIZE]; 
@@ -25,46 +25,27 @@ int main() {
 
     char output [SIZE];
 
-    tfs_open_paramts open_paramts;
-    tfs_write_paramts write_paramts;
-    tfs_read_paramts read_paramts;
     assert(tfs_init() != -1);
 
     /* Write input COUNT times into a new file */
-    
-    open_paramts.pth = path;
-    open_paramts.flg = TFS_O_CREAT;
-    tfs_open((void*)&open_paramts);
-    fd = open_paramts.rtn_value;
+    int fd = tfs_open(path, TFS_O_CREAT);
     assert(fd != -1);
-    
-    write_paramts.fhandle = fd;
-    write_paramts.buffer = input;
-    write_paramts.to_write = SIZE;
-    
     for (int i = 0; i < COUNT; i++) {
-        tfs_write((void *)&write_paramts);
-        assert(write_paramts.rtn_value == SIZE);
+        assert(tfs_write(fd, input, SIZE) == SIZE);
     }
     assert(tfs_close(fd) != -1);
 
     /* Open again to check if contents are as expected */
-    open_paramts.flg = 0;
-    tfs_open((void*)&open_paramts);
-    fd = open_paramts.rtn_value;
-    assert(fd != -1);
+    fd = tfs_open(path, 0);
+    assert(fd != -1 );
 
-    read_paramts.fhandle = fd;
-    read_paramts.buffer = output;
-    read_paramts.len = SIZE;
     for (int i = 0; i < COUNT; i++) {
-        tfs_read((void*)&read_paramts);
-        assert(read_paramts.rtn_value == SIZE);
+        assert(tfs_read(fd, output, SIZE) == SIZE);
         assert (memcmp(input, output, SIZE) == 0);
     }
 
     assert(tfs_close(fd) != -1);
-    assert(tfs_destroy() != -1);
+
 
     printf("Sucessful test\n");
 

@@ -72,7 +72,7 @@ tests/copy_to_external_simple: tests/copy_to_external_simple.o fs/operations.o f
 tests/write_10_blocks_spill: tests/write_10_blocks_spill.o fs/operations.o fs/state.o
 tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/state.o
 tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
-tests/ourtest_ab: tests/ourtest_ab.o fs/operations.o fs/state.o
+tests/ourtest_ab: tests/ourtest_ab.o fs/operations.o fs/state.o fs/threads_api.o
 
 test1: 
 	./tests/test1
