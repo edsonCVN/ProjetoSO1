@@ -17,7 +17,7 @@ int main() {
     tfs_open_paramts input[9];
 
     input[0].pth = path;
-    input[0].flg = TFS_O_TRUNC;
+    input[0].flg = TFS_O_CREAT;
     input[1].pth = "/f2";
     input[1].flg = TFS_O_TRUNC;
     input[2].pth = "/f2";
