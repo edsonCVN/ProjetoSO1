@@ -14,7 +14,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/ourtest2 tests/ourtest_ab tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
+TARGET_EXECS := tests/ourtest4 tests/ourtest3 tests/ourtest2 tests/ourtest_ab tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -32,7 +32,10 @@ CFLAGS += -Wno-sign-compare
 LDFLAGS += -lpthread -pthread
 # optional debug symbols: run make DEBUG=no to deactivate them
 ifneq ($(strip $(DEBUG)), no)
-  CFLAGS += -g 
+  CFLAGS += -g
+  CFLAGS += -fsanitize=address
+  LDFLAGS += -fsanitize=address
+  CXXFLAGS = -fsanitize=address
   
 endif
 
@@ -74,6 +77,8 @@ tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/
 tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
 tests/ourtest_ab: tests/ourtest_ab.o fs/operations.o fs/state.o fs/threads_api.o
 tests/ourtest2: tests/ourtest2.o fs/operations.o fs/state.o fs/threads_api.o
+tests/ourtest3: tests/ourtest3.o fs/operations.o fs/state.o fs/threads_api.o
+tests/ourtest4: tests/ourtest4.o fs/operations.o fs/state.o fs/threads_api.o
 
 test1: 
 	./tests/test1
@@ -99,6 +104,11 @@ test7:
 test8:
 	./tests/ourtest2
 
+test9:
+	./tests/ourtest3
+
+test10:
+	./tests/ourtest4
 tests:
 	./tests/test1
 	./tests/copy_to_external_errors
@@ -108,6 +118,8 @@ tests:
 	./tests/write_more_than_10_blocks_simple
 	./tests/ourtest_ab
 	./tests/ourtest2
+	./tests/ourtest3
+	./tests/ourtest4
 
 
 clean:

@@ -55,3 +55,13 @@ resumo do horário de dúvidas:
 
     tfs_open: usar trinco na verificação e operação (criar igual verificação para cada operação para aumentar paralelismo)
 
+LDFLAGS += -lpthread
+CFLAGS += -fsanitize=thread
+LDFLAGS += -fsanitize=thread
+CXXFLAGS = -fsanitize=thread
+
+
+passar open ->write->close para dentro de uma função (para ser tudo chamado por uma thread)
+
+colocar cadeados no offset, testar e aumentar o n. de testes
+testar as várias flags do open

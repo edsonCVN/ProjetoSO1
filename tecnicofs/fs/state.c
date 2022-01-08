@@ -305,7 +305,6 @@ void print_dir_state(int n_entries, int inumber) {
             // return;
         }
     }
-    // SECÇÃO CRÍTICA ESCRITA
 }
 
 /*
