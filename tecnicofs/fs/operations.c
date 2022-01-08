@@ -122,7 +122,7 @@ int tfs_open(char const *name, int flags){
         /* Add entry in the root directory */
         if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
             inode_delete(inum);
-            pthread_rwlock_unlock(&inode->i_rwlock);
+            //pthread_rwlock_unlock(&inode->i_rwlock); passou-se para dentro do inode_delete
             return -1;
         }
         offset = 0;
@@ -154,13 +154,17 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
 
+    pthread_mutex_lock(&file->of_mutex);
     /* From the open file table entry, we get the inode */
     inode_t *inode = inode_get(file->of_inumber);
 
     pthread_rwlock_wrlock(&inode->i_rwlock);
 
     if (inode == NULL) {
+
+        pthread_mutex_unlock(&file->of_mutex);
         pthread_rwlock_unlock(&inode->i_rwlock);
+        
         return -1;
     }
 
@@ -169,7 +173,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     // dúvida: verificações necessariamente dentro do mesmo cadeado que as
     // operações? GARANTIR QUE ALTERAÇÃO DO *inode->i_size* e *file->of_offset*
     // é thread-safe!
-
+    
     while (size_to_write > size_written && inode->i_size < FILE_MAXSIZE) {
 
         if (inode->i_size < (INODE_BLOCKS_SIZE - 1) * (BLOCK_SIZE)) {
@@ -194,7 +198,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 
                     void *block = data_block_get(inode->i_data_block[j]);
                     if (block == NULL) {
+
                         pthread_rwlock_unlock(&inode->i_rwlock);
+                        pthread_mutex_unlock(&file->of_mutex);
+
                         return -1;
                     }
 
@@ -222,7 +229,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
                 int *indirect_block =
                     data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
                 if (indirect_block == NULL) {
+
                     pthread_rwlock_unlock(&inode->i_rwlock);
+                    pthread_mutex_unlock(&file->of_mutex);
+
                     return -1;
                 }
                 // inicialização das referencias dentro do bloco indireto
@@ -236,7 +246,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             int *indirect_block =
                 data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
             if (indirect_block == NULL) {
+
                 pthread_rwlock_unlock(&inode->i_rwlock);
+                pthread_mutex_unlock(&file->of_mutex);
+
                 return -1;
             }
 
@@ -264,7 +277,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 
                     void *block = data_block_get(indirect_block[i]);
                     if (block == NULL) {
+
                         pthread_rwlock_unlock(&inode->i_rwlock);
+                        pthread_mutex_unlock(&file->of_mutex);
+
                         return -1;
                     }
                     memcpy(block + block_offset, buffer + size_written,
@@ -281,7 +297,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         }
     }
     // SECÇÃO CRITICA ESCRITA
+
     pthread_rwlock_unlock(&inode->i_rwlock);
+    pthread_mutex_unlock(&file->of_mutex);
+
     return (ssize_t)size_written;
 }
 
@@ -292,14 +311,17 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (file == NULL) {
         return -1;
     }
-
+    pthread_mutex_lock(&file->of_mutex);
     /* From the open file table entry, we get the inode */
     inode_t *inode = inode_get(file->of_inumber);
     
     pthread_rwlock_rdlock(&inode->i_rwlock);
     
     if (inode == NULL) {
+        
+        pthread_mutex_unlock(&file->of_mutex);
         pthread_rwlock_unlock(&inode->i_rwlock);
+        
         return -1;
     }
 
@@ -321,7 +343,10 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
                 char *block = (char *)data_block_get(inode->i_data_block[j]);
 
                 if (block == NULL) {
+
+                    pthread_mutex_unlock(&file->of_mutex);
                     pthread_rwlock_unlock(&inode->i_rwlock);
+                    
                     return -1;
                 }
 
@@ -351,7 +376,10 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
             int *indirect_block =
                 data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
             if (indirect_block == NULL) {
+
+                pthread_mutex_unlock(&file->of_mutex);
                 pthread_rwlock_unlock(&inode->i_rwlock);
+
                 return -1;
             }
 
@@ -365,7 +393,10 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
                 char *block = (char *)data_block_get(indirect_block[i]);
 
                 if (block == NULL) {
+
+                    pthread_mutex_unlock(&file->of_mutex);
                     pthread_rwlock_unlock(&inode->i_rwlock);
+                    
                     return -1;
                 }
 
@@ -394,7 +425,10 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         }
     }
     // SECÇÃO CRITICA ESCRITA
+
+    pthread_mutex_unlock(&file->of_mutex);
     pthread_rwlock_unlock(&inode->i_rwlock);
+    
     return (ssize_t)read;
 }
 
@@ -403,7 +437,6 @@ int tfs_copy_to_external_fs(char const *src_path, char const *dest_path) {
     char buffer[BLOCK_SIZE];
     ssize_t bytes_read = 0;
     int error = 0;
-    // SECÇÃO CRITICA ESCRITA
 
     int src_file = tfs_open(src_path, 0);
 
@@ -417,7 +450,6 @@ int tfs_copy_to_external_fs(char const *src_path, char const *dest_path) {
         return -1;
     }
    
-    //trinco global
     do {
         bytes_read = tfs_read(src_file, buffer, BLOCK_SIZE);
         if (bytes_read == -1 ||
@@ -429,7 +461,6 @@ int tfs_copy_to_external_fs(char const *src_path, char const *dest_path) {
 
     error += tfs_close(src_file);
     error += fclose(dest_fp);
-    // SECÇÃO CRITICA ESCRITA
     if (error != 0) {
         return -1;
     }

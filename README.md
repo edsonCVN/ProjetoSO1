@@ -65,3 +65,5 @@ passar open ->write->close para dentro de uma função (para ser tudo chamado po
 
 colocar cadeados no offset, testar e aumentar o n. de testes
 testar as várias flags do open
+
+-> garantir que todos os locks têm destory

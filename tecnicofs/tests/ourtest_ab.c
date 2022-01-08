@@ -10,7 +10,7 @@
 
 
 int main() {
-
+/*
     char *path = "/f1";
     pthread_t tid[20];
 
@@ -70,11 +70,11 @@ int main() {
     print_dir(20);
 
     assert(tfs_destroy() != -1);
-    /*
+    
     for(int i; i < 5; i ++) {
         tfs_close(open_return_values[i]);
-    }*/
+    }
     //assert(tfs_close(fd) != -1);
-
+*/
     return 0;
 }

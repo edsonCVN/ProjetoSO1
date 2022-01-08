@@ -169,10 +169,10 @@ int inode_delete(int inumber) {
     }
 
     freeinode_ts[inumber] = FREE;
-
+    
     if (inode_table[inumber].i_size > 0) {
 
-        for (int j = 0; j < INODE_BLOCKS_SIZE; j++) {
+        for (int j = 0; j < INODE_BLOCKS_SIZE; j++) { //incompleto (copiar do truncate)
             if (data_block_free(inode_table[inumber].i_data_block[j]) == -1) {
                 return -1;
             }
@@ -181,7 +181,8 @@ int inode_delete(int inumber) {
         inode_table[inumber].i_size = 0;
     }
     // SECÇÃO CRÍTICA ESCRITA
-
+    pthread_rwlock_unlock(&inode_table[inumber].i_rwlock);
+    pthread_rwlock_destroy(&inode_table[inumber].i_rwlock);
     /* TODO: handle non-empty directories (either return error, or recursively
      * delete children */
 
@@ -373,6 +374,7 @@ int add_to_open_file_table(int inumber, size_t offset) {
             free_open_file_entries[i] = TAKEN;
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
+            pthread_mutex_init(&open_file_table[i].of_mutex, NULL);
             return i;
         }
         // SECÇÃO CRÍTICA ESCRITA
@@ -392,6 +394,8 @@ int remove_from_open_file_table(int fhandle) {
         return -1;
     }
     free_open_file_entries[fhandle] = FREE;
+    //pthread_mutex_unlock(&open_file_table[fhandle].of_mutex); ???
+    pthread_mutex_destroy(&open_file_table[fhandle].of_mutex);
     // SECÇÃO CRÍTICA ESCRITA
     return 0;
 }
