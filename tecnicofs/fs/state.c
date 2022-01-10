@@ -69,6 +69,7 @@ static void insert_delay() {
 void state_init() {
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
         freeinode_ts[i] = FREE;
+        pthread_rwlock_init(&inode_table[i].i_rwlock, NULL);
     }
 
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
@@ -77,16 +78,20 @@ void state_init() {
 
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         free_open_file_entries[i] = FREE;
+        pthread_mutex_init(&open_file_table[i].of_mutex, NULL);
     }
 }
 
-void state_destroy() {}
+void state_destroy() {
+    for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
+        pthread_rwlock_destroy(&inode_table[i].i_rwlock);
+    }
 
-/* está retornar int...
-pthread_mutex_t *get_global_lock() {
-    return &global_lock;
+    for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
+        pthread_mutex_destroy(&open_file_table[i].of_mutex);
+    }
 }
-*/
+
 
 /*
  * Creates a new i-node in the i-node table.
@@ -109,7 +114,6 @@ int inode_create(inode_type n_type) {
             freeinode_ts[inumber] = TAKEN;
             insert_delay(); // simulate storage access delay (to i-node)
             inode_table[inumber].i_node_type = n_type;
-            pthread_rwlock_init(&inode_table[inumber].i_rwlock, NULL);
 
             if (n_type == T_DIRECTORY) {
                 /* Initializes directory (filling its block with empty
@@ -181,8 +185,7 @@ int inode_delete(int inumber) {
         inode_table[inumber].i_size = 0;
     }
     // SECÇÃO CRÍTICA ESCRITA
-    pthread_rwlock_unlock(&inode_table[inumber].i_rwlock);
-    pthread_rwlock_destroy(&inode_table[inumber].i_rwlock);
+
     /* TODO: handle non-empty directories (either return error, or recursively
      * delete children */
 
@@ -374,7 +377,6 @@ int add_to_open_file_table(int inumber, size_t offset) {
             free_open_file_entries[i] = TAKEN;
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
-            pthread_mutex_init(&open_file_table[i].of_mutex, NULL);
             return i;
         }
         // SECÇÃO CRÍTICA ESCRITA
@@ -395,7 +397,6 @@ int remove_from_open_file_table(int fhandle) {
     }
     free_open_file_entries[fhandle] = FREE;
     //pthread_mutex_unlock(&open_file_table[fhandle].of_mutex); ???
-    pthread_mutex_destroy(&open_file_table[fhandle].of_mutex);
     // SECÇÃO CRÍTICA ESCRITA
     return 0;
 }
@@ -410,6 +411,7 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
     if (!valid_file_handle(fhandle)) {
         return NULL;
     }
+    pthread_mutex_lock(&open_file_table[fhandle].of_mutex);
     void *open_file_entry = &open_file_table[fhandle];
     // SECÇÃO CRÍTICA LEITURA
     return open_file_entry;

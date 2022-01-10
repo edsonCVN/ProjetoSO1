@@ -1,6 +1,7 @@
 #include "threads_api.h"
 #include "operations.h"
 #include <assert.h>
+#include <string.h>
 
 /*void *tfs_open_tapi(void *arg){
     tfs_open_paramts *paramts = (tfs_open_paramts *)arg;
@@ -24,7 +25,7 @@ void *tfs_write_tapi (void *arg){
 
     for (int i = 0; i < paramts->count; i++) {
         single_rtn_value = tfs_write(paramts->fhandle, paramts->buffer, paramts->to_write);
-        printf("read i:%d -> rtn: %ld\n", i, single_rtn_value);
+        printf("write i:%d -> rtn: %ld\n", i, single_rtn_value);
         paramts->rtn_value += single_rtn_value;
     }
     assert(tfs_close(paramts->fhandle) != -1);
@@ -48,9 +49,10 @@ void *tfs_read_tapi(void *arg){
     assert(paramts->fhandle != -1);
     ssize_t single_rtn_value;
     for (int i = 0; i < paramts->count; i++) {
+        memset(paramts->buffer, 'C', 100);
         single_rtn_value = tfs_read(paramts->fhandle, paramts->buffer, paramts->len);
-        printf("buffer %.25s\n", (char*) paramts->buffer);
-        printf("write i:%d -> rtn: %ld\n", i, single_rtn_value);
+        printf("buffer %.100s\n", (char*) paramts->buffer);
+        printf("read i:%d -> rtn: %ld\n", i, single_rtn_value);
         paramts->rtn_value += single_rtn_value;
     }
     assert(tfs_close(paramts->fhandle) != -1);

@@ -67,3 +67,11 @@ colocar cadeados no offset, testar e aumentar o n. de testes
 testar as várias flags do open
 
 -> garantir que todos os locks têm destory
+
+
+PARA FAZER:
+    incializar TODOS os trincos no init!
+	destruir TODOS os trincos no destroy!
+
+
+teste ideia: fazer read e write simultâneo com o mesmo filehandle.

@@ -1,80 +1,54 @@
 #include "../fs/operations.h"
 #include <assert.h>
+#include <pthread.h>
 #include <string.h>
 #include <threads_api.h>
-#include <pthread.h>
-#define COUNT 109 // a partir de = 109 ele fica em loop infinito (é quando ultrapassa o tamamnho máximo 272384)
-                  // este ciclo infinito ocorre pelo menos no write...
-#define SIZE 2500
 
-
+#define COUNT 2
+#define SIZE 25
+#define N 4
 
 int main() {
-/*
-    char *path = "/f1";
-    pthread_t tid[20];
 
-    tfs_open_paramts input[20];
-
-    input[0].pth = path;
-    input[0].flg = TFS_O_CREAT;
-    input[1].pth = "/f2";
-    input[1].flg = TFS_O_CREAT;
-    input[2].pth = "/f3";
-    input[2].flg = TFS_O_CREAT;
-    input[3].pth = "/f4";
-    input[3].flg = TFS_O_CREAT;
-    input[4].pth = "/f5";
-    input[4].flg = TFS_O_CREAT;
-    input[5].pth = "/f6";
-    input[5].flg = TFS_O_CREAT;
-    input[6].pth = "/f7";
-    input[6].flg = TFS_O_CREAT;
-    input[7].pth = "/f8";
-    input[7].flg = TFS_O_CREAT;
-    input[8].pth = "/f9";
-    input[8].flg = TFS_O_CREAT;
-    input[9].pth = "/f10";
-    input[9].flg = TFS_O_CREAT;
-    input[10].pth = "/f11";
-    input[10].flg = TFS_O_CREAT;
-    input[11].pth = "/f12";
-    input[11].flg = TFS_O_CREAT;
-    input[12].pth = "/f13";
-    input[12].flg = TFS_O_CREAT;
-    input[13].pth = "/f14";
-    input[13].flg = TFS_O_CREAT;
-    input[14].pth = "/f15";
-    input[14].flg = TFS_O_CREAT;
-    input[15].pth = "/f16";
-    input[15].flg = TFS_O_CREAT;
-    input[16].pth = "/f17";
-    input[16].flg = TFS_O_CREAT;
-    input[17].pth = "/f18";
-    input[17].flg = TFS_O_CREAT;
-    input[18].pth = "/f19";
-    input[18].flg = TFS_O_CREAT;
-    input[19].pth = "/f20";
-    input[19].flg = TFS_O_CREAT;
-    //int open_return_values[5];
+    char input1[SIZE];
+    memset(input1, 'A', SIZE);
+    memset(input1, 'X', SIZE - 1);
+    char output1[SIZE*4];
     
+    char input2[SIZE];
+    memset(input2, 'B', SIZE);
+    memset(input2, 'Y', SIZE - 1);
+    char output2[SIZE];
+    
+    pthread_t tid[N];
+    tfs_write_paramts write_input[N/2];
+    tfs_write_paramts_set(&write_input[0], "/f1", TFS_O_CREAT, input1, SIZE, COUNT);
+    tfs_write_paramts_set(&write_input[1], "/f1", TFS_O_APPEND, input2, SIZE, COUNT);
+    tfs_read_paramts read_input[N/2];
+    tfs_read_paramts_set(&read_input[0], "/f1", 0, output1, SIZE*4, COUNT-1);
+    tfs_read_paramts_set(&read_input[1], "/f1", 0, output2, SIZE, COUNT);
+
     assert(tfs_init() != -1);
-    
-    for (int i =0; i <20; i++) {
-        pthread_create(&tid[i], NULL, tfs_open_tapi, (void *)&input[i]);
-    }
-    for (int i =0; i <20; i++) {
-        pthread_join(tid[i], NULL);    
-    }
-    
-    print_dir(20);
 
-    assert(tfs_destroy() != -1);
-    
-    for(int i; i < 5; i ++) {
-        tfs_close(open_return_values[i]);
+    for(int i = 0; i < N / 2; i++) {
+        pthread_create(&tid[i], NULL, tfs_write_tapi, (void*)&write_input[i]);
+        pthread_join(tid[i], NULL);
     }
-    //assert(tfs_close(fd) != -1);
-*/
-    return 0;
-}
+
+    //for(int i = N / 2; i < N; i++) {
+        pthread_create(&tid[2], NULL, tfs_read_tapi, (void*)&read_input[0]);
+    //}
+
+    for(int i = 2; i < N - 1; i++) {
+        pthread_join(tid[i], NULL);
+    }
+    for(int i = 0; i < N / 2; i++) {
+        assert(write_input[i].rtn_value == (SIZE*COUNT));
+        
+    }
+    //for(int i = N / 2; i < N - 1; i++) {
+       assert(read_input[0].rtn_value == (SIZE*COUNT*2));
+    //}
+    
+    assert(tfs_destroy() != -1);
+}   

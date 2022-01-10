@@ -27,7 +27,6 @@ int tfs_init() { // supondo que tfs_init() nunca vai ser chamado de forma
 
 int tfs_destroy() { // ver que estruturas a destruir (inodes, dir_entires,
                     // rwlocks...)
-    // pthread_mutex_destroy(&global_lock);
     inode_t *root_inode = inode_get(ROOT_DIR_INUM);
     pthread_rwlock_destroy(&root_inode->i_rwlock);
 
@@ -122,7 +121,7 @@ int tfs_open(char const *name, int flags){
         /* Add entry in the root directory */
         if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
             inode_delete(inum);
-            //pthread_rwlock_unlock(&inode->i_rwlock); passou-se para dentro do inode_delete
+            pthread_rwlock_unlock(&inode->i_rwlock);
             return -1;
         }
         offset = 0;
@@ -144,7 +143,16 @@ int tfs_open(char const *name, int flags){
      * opened but it remains created */
 }
 
-int tfs_close(int fhandle) { return remove_from_open_file_table(fhandle); }
+int tfs_close(int fhandle) { 
+    int rtn_value;
+    open_file_entry_t *file_entry = get_open_file_entry(fhandle);
+    if(file_entry == NULL) {
+        return -1;
+    }
+    rtn_value = remove_from_open_file_table(fhandle); 
+    pthread_mutex_unlock(&file_entry->of_mutex);
+    return rtn_value;
+    }
 
 ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 
@@ -153,8 +161,6 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     if (file == NULL) {
         return -1;
     }
-
-    pthread_mutex_lock(&file->of_mutex);
     /* From the open file table entry, we get the inode */
     inode_t *inode = inode_get(file->of_inumber);
 
@@ -311,7 +317,6 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (file == NULL) {
         return -1;
     }
-    pthread_mutex_lock(&file->of_mutex);
     /* From the open file table entry, we get the inode */
     inode_t *inode = inode_get(file->of_inumber);
     
