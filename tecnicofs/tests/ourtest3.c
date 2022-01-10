@@ -6,7 +6,9 @@
 #define COUNT 8
 #define SIZE 2500
 #define N 8
+/*
 
+*/
 int main() {
 
     pthread_t tid[N];
@@ -26,18 +28,17 @@ int main() {
 
     assert(tfs_init() != -1);
 
-    tfs_write_paramts_set(&write_input[0], "/f1", TFS_O_CREAT, input1, SIZE-1, COUNT);
+    tfs_write_paramts_set(&write_input[0], "/f1", TFS_O_CREAT, input1, SIZE, COUNT);
     pthread_create(&tid[4], NULL, tfs_write_tapi, (void *)&write_input[0]);
-   
 
     tfs_write_paramts_set(&write_input[1], "/f2", TFS_O_CREAT, input2, SIZE, COUNT);
     pthread_create(&tid[5], NULL, tfs_write_tapi, (void *)&write_input[1]);
 
-    tfs_read_paramts_set(&read_input[0], "/f1", 0, output1, SIZE-1, COUNT);
+    tfs_read_paramts_set(&read_input[0], "/f1", 0, output1, SIZE, COUNT);
     pthread_create(&tid[6], NULL, tfs_read_tapi, (void *)&read_input[0]);
 
 
-    tfs_read_paramts_set(&read_input[1], "/f1", 0, output2, SIZE, COUNT);
+    tfs_read_paramts_set(&read_input[1], "/f2", 0, output2, SIZE, COUNT);
     pthread_create(&tid[7], NULL, tfs_read_tapi, (void *)&read_input[1]);
 
 

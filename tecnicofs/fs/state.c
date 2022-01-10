@@ -175,14 +175,7 @@ int inode_delete(int inumber) {
     freeinode_ts[inumber] = FREE;
     
     if (inode_table[inumber].i_size > 0) {
-
-        for (int j = 0; j < INODE_BLOCKS_SIZE; j++) { //incompleto (copiar do truncate)
-            if (data_block_free(inode_table[inumber].i_data_block[j]) == -1) {
-                return -1;
-            }
-        }
-
-        inode_table[inumber].i_size = 0;
+        delete_content_inode(&inode_table[inumber]);
     }
     // SECÇÃO CRÍTICA ESCRITA
 
@@ -415,4 +408,31 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
     void *open_file_entry = &open_file_table[fhandle];
     // SECÇÃO CRÍTICA LEITURA
     return open_file_entry;
+}
+/* Returns 0 if successful else -1 */
+int delete_content_inode(inode_t *inode) {
+    size_t to_delete = inode->i_size;
+    for (int j = 0; j < INODE_BLOCKS_SIZE && to_delete >= BLOCK_SIZE; j++) {
+        if (data_block_free(inode->i_data_block[j]) == -1) {
+                return -1;
+        }
+        to_delete -= BLOCK_SIZE;
+        if(j == INDIRECT_BLOCK_INDEX) {
+            int *indirect_block = data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
+                if (indirect_block == NULL) {
+                    break; //ainda não foi utilizado
+                }
+                for(int k = 0; k < BLOCK_SIZE / sizeof(int) && to_delete >= BLOCK_SIZE; k++){
+                    if (data_block_free(inode->i_data_block[k]) == -1) {
+                        return -1;
+                    }
+                    to_delete -= BLOCK_SIZE;
+                }
+                if(data_block_free(inode->i_data_block[INDIRECT_BLOCK_INDEX]) == -1) {
+                    return -1;
+                }
+            }
+        }
+        inode->i_size = 0;
+        return 0;
 }

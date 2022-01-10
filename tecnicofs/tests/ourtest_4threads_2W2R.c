@@ -7,7 +7,12 @@
 #define COUNT 8
 #define SIZE 25
 #define N 4
+/*
+    Lançamos 4 threads: duas criam "/f1" e "/f2" e escrevem em cada um SIZE*COUNT bytes e ao mesmo tempo outras duas
+    lêem de "/f1" e "/f2" SIZE*COUNT , cada.
 
+    Nota: verificar em threads_api.c:54 o que o tamanho do buffer de leitura corresponde ao tamanho do print
+*/
 int main() {
 
     char input1[SIZE];

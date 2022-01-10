@@ -68,10 +68,9 @@ testar as várias flags do open
 
 -> garantir que todos os locks têm destory
 
+teste ideia: fazer read e write simultâneo com o mesmo filehandle.
+
 
 PARA FAZER:
-    incializar TODOS os trincos no init!
-	destruir TODOS os trincos no destroy!
-
-
-teste ideia: fazer read e write simultâneo com o mesmo filehandle.
+    corrigir no inode_delete (fatorizar o que está no truncate para usar lá)
+    comentar os testes

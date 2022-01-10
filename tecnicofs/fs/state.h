@@ -62,5 +62,6 @@ int add_to_open_file_table(int inumber, size_t offset);
 int remove_from_open_file_table(int fhandle);
 /* Function usage requires unlock of file_entry's mutex since it is locked inside. */
 open_file_entry_t *get_open_file_entry(int fhandle);
+int delete_content_inode(inode_t *inode);
 
 #endif // STATE_H

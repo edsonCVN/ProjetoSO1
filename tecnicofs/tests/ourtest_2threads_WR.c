@@ -7,7 +7,11 @@
 #define COUNT 8
 #define SIZE 2500
 #define N 2
+/*
+    Escrita e leitura paralela no mesmo ficheiro
 
+    Nota: verificar em threads_api.c:54 o que o tamanho do buffer de leitura corresponde ao tamanho do print
+*/
 int main() {
 
     char input1[SIZE];

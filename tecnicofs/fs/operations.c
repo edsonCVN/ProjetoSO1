@@ -77,29 +77,10 @@ int tfs_open(char const *name, int flags){
         /* Trucate (if requested) */
         if (flags & TFS_O_TRUNC) { //dar fix ao for e testar thread-safety
             if (inode->i_size > 0) {
-                size_t to_delete = inode->i_size;
-                for (int j = 0; j < INODE_BLOCKS_SIZE && to_delete >= BLOCK_SIZE; j++) {
-                    if (data_block_free(inode->i_data_block[j]) == -1) {
-                        pthread_rwlock_unlock(&inode->i_rwlock);
-                        return -1;
-                    }
-                    to_delete -= BLOCK_SIZE;
-                    if(j == INDIRECT_BLOCK_INDEX) {
-                        int *indirect_block = data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
-                        if (indirect_block == NULL) {
-                            break; //ainda não foi utilizado
-                        }
-                        for(int k = 0; k < BLOCK_SIZE / sizeof(int) && to_delete >= BLOCK_SIZE; k++){
-                            if (data_block_free(inode->i_data_block[k]) == -1) {
-                                pthread_rwlock_unlock(&inode->i_rwlock);
-                                return -1;
-                            }
-                            to_delete -= BLOCK_SIZE;
-                        }
-                    }
+                if(delete_content_inode(inode) == -1) {
+                    pthread_rwlock_unlock(&inode->i_rwlock);
+                    return -1;
                 }
-                inode->i_size = 0;
-                pthread_rwlock_unlock(&inode->i_rwlock);
             }
         }
         /* Determine initial offset */

@@ -51,7 +51,7 @@ void *tfs_read_tapi(void *arg){
     for (int i = 0; i < paramts->count; i++) {
         memset(paramts->buffer, 'C', 100);
         single_rtn_value = tfs_read(paramts->fhandle, paramts->buffer, paramts->len);
-        printf("buffer %.100s\n", (char*) paramts->buffer);
+        //printf("buffer %.100s\n", (char*) paramts->buffer);
         printf("read i:%d -> rtn: %ld\n", i, single_rtn_value);
         paramts->rtn_value += single_rtn_value;
     }
