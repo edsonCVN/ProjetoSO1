@@ -74,3 +74,12 @@ teste ideia: fazer read e write simultâneo com o mesmo filehandle.
 PARA FAZER:
     corrigir no inode_delete (fatorizar o que está no truncate para usar lá)
     comentar os testes
+
+    14/01/2022
+
+    1 // confirmar a necessidade de fazer o join antes de chamar as leituras 1W2R
+    2 // comentar o API
+    3 // testes Sofs
+    4 // submeter
+    5 // agradecer ao Predrocas
+    6 // 

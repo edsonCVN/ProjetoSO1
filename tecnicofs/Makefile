@@ -14,7 +14,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/ourtest_2threads_WR tests/ourtest3 tests/ourtest_4threads_2W2R tests/ourtest_ab tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
+TARGET_EXECS := tests/ourtest_3threads_W2R tests/ourtest_4threads_2W2R tests/ourtest_3threads_2W1R tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -75,10 +75,9 @@ tests/copy_to_external_simple: tests/copy_to_external_simple.o fs/operations.o f
 tests/write_10_blocks_spill: tests/write_10_blocks_spill.o fs/operations.o fs/state.o
 tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/state.o
 tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
-tests/ourtest_ab: tests/ourtest_ab.o fs/operations.o fs/state.o fs/threads_api.o
+tests/ourtest_3threads_2W1R: tests/ourtest_3threads_2W1R.o fs/operations.o fs/state.o fs/threads_api.o
 tests/ourtest_4threads_2W2R: tests/ourtest_4threads_2W2R.o fs/operations.o fs/state.o fs/threads_api.o
-tests/ourtest3: tests/ourtest3.o fs/operations.o fs/state.o fs/threads_api.o
-tests/ourtest_2threads_WR: tests/ourtest_2threads_WR.o fs/operations.o fs/state.o fs/threads_api.o
+tests/ourtest_3threads_W2R: tests/ourtest_3threads_W2R.o fs/operations.o fs/state.o fs/threads_api.o
 
 test1: 
 	./tests/test1
@@ -99,16 +98,14 @@ test6:
 	./tests/write_more_than_10_blocks_simple
 
 test7:
-	./tests/ourtest_ab
+	./tests/ourtest_3threads_2W1R
 
 test8:
 	./tests/ourtest_4threads_2W2R
 
 test9:
-	./tests/ourtest3
+	./tests/ourtest_3threads_W2R
 
-test10:
-	./tests/ourtest_2threads_WR
 tests:
 	./tests/test1
 	./tests/copy_to_external_errors
@@ -116,10 +113,9 @@ tests:
 	./tests/write_10_blocks_spill
 	./tests/write_10_blocks_simple
 	./tests/write_more_than_10_blocks_simple
-	./tests/ourtest_ab
+	./tests/ourtest_3threads_2W1R
 	./tests/ourtest_4threads_2W2R
-	./tests/ourtest3
-	./tests/ourtest_2threads_WR
+	./tests/ourtest_3threads_W2R
 
 
 clean:
