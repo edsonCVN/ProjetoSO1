@@ -78,8 +78,278 @@ PARA FAZER:
     14/01/2022
 
     1 // confirmar a necessidade de fazer o join antes de chamar as leituras 1W2R
-    2 // comentar o API
-    3 // testes Sofs
-    4 // submeter
-    5 // agradecer ao Predrocas
-    6 // 
+    4 // veririfcar maximo ficheiros abertos
+    5 // submeter
+    6 // strcmp
+
+    test17 está a dar mal
+
+
+
+
+
+    ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
+
+    open_file_entry_t *file = get_open_file_entry(fhandle);
+    if (file == NULL) {
+        return -1;
+    }
+    /* From the open file table entry, we get the inode */
+    inode_t *inode = inode_get(file->of_inumber);
+
+    pthread_rwlock_wrlock(&inode->i_rwlock);
+
+    if (inode == NULL) {
+
+        pthread_mutex_unlock(&file->of_mutex);
+        pthread_rwlock_unlock(&inode->i_rwlock);
+
+        return -1;
+    }
+
+    size_t size_to_write = to_write;
+    size_t size_written = 0;
+
+    while (size_to_write > size_written && inode->i_size < FILE_MAXSIZE) {
+
+        if (file->of_offset / BLOCK_SIZE < 10) {
+           
+            /*
+            size_t block_index = file->of_offset / BLOCK_SIZE;
+            for (size_t j = block_index, block_offset = 0; j < INODE_BLOCKS_SIZE - 1 && size_written != size_to_write; j++) {
+
+                block_offset = file->of_offset % BLOCK_SIZE;
+                to_write = size_to_write - size_written;
+
+                if (to_write + block_offset > BLOCK_SIZE) {
+                    to_write = BLOCK_SIZE - block_offset;
+                }
+
+                if (to_write > 0) {
+
+                    if (inode->i_data_block[j] == -1) {
+                        
+                        inode->i_data_block[j] = data_block_alloc();
+                    }
+
+                    void *block = data_block_get(inode->i_data_block[j]);
+                    if (block == NULL) {
+
+                        pthread_rwlock_unlock(&inode->i_rwlock);
+                        pthread_mutex_unlock(&file->of_mutex);
+
+                        return -1;
+                    }
+
+                    
+                    memcpy(block + block_offset, buffer + size_written, to_write);
+
+                   
+
+                    file->of_offset += to_write;
+                    size_written += to_write;
+
+                    if (file->of_offset > inode->i_size) {
+                        inode->i_size = file->of_offset;
+                    }
+                }
+            } */
+        } else {
+
+            if (inode->i_data_block[INDIRECT_BLOCK_INDEX] == -1) {
+                /* Allocation of inode's indirect block. */
+                inode->i_data_block[INDIRECT_BLOCK_INDEX] = data_block_alloc();
+
+                int *indirect_block = data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
+                if (indirect_block == NULL) {
+
+                    pthread_rwlock_unlock(&inode->i_rwlock);
+                    pthread_mutex_unlock(&file->of_mutex);
+
+                    return -1;
+                }
+
+                /* Initialization of inode's indirect block's table. */
+                for (int i = 0; i < BLOCK_SIZE / sizeof(int); i++) {
+                    indirect_block[i] = -1;
+                }
+            }
+
+            int *indirect_block = (int *)data_block_get(inode->i_data_block[INDIRECT_BLOCK_INDEX]);
+            if (indirect_block == NULL) {
+
+                pthread_rwlock_unlock(&inode->i_rwlock);
+                pthread_mutex_unlock(&file->of_mutex);
+
+                return -1;
+            }
+
+            size_t indirect_i = file->of_offset / BLOCK_SIZE - 10;
+            for (size_t i = indirect_i, block_offset = 0; i < (BLOCK_SIZE / sizeof(int)) && size_to_write != size_written; i++) {
+
+                block_offset = file->of_offset % BLOCK_SIZE;
+                to_write = size_to_write - size_written;
+
+                if (to_write + block_offset > BLOCK_SIZE) {
+                    to_write = BLOCK_SIZE - block_offset;
+                }
+                if (to_write > 0) {
+                    if (indirect_block[i] == -1) {
+                        indirect_block[i] = data_block_alloc();
+                    }
+
+                    void *block = data_block_get(indirect_block[i]);
+                    if (block == NULL) {
+
+                        pthread_rwlock_unlock(&inode->i_rwlock);
+                        pthread_mutex_unlock(&file->of_mutex);
+
+                        return -1;
+                    }
+                    memcpy(block + block_offset, buffer + size_written, to_write);
+
+                    /* The offset associated with the file handle is
+                     * incremented accordingly */
+                    file->of_offset += to_write;
+                    size_written += to_write;
+
+                    if (file->of_offset > inode->i_size) {
+                        inode->i_size = file->of_offset;
+                    }
+                }
+            }
+        }
+    }
+
+    pthread_rwlock_unlock(&inode->i_rwlock);
+    pthread_mutex_unlock(&file->of_mutex);
+
+    return (ssize_t)size_written;
+}
+
+ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
+
+    open_file_entry_t *file = get_open_file_entry(fhandle);
+    if (file == NULL) {
+        return -1;
+    }
+    /* From the open file table entry, we get the inode */
+    inode_t *inode = inode_get(file->of_inumber);
+
+    pthread_rwlock_rdlock(&inode->i_rwlock);
+
+    if (inode == NULL) {
+
+        pthread_mutex_unlock(&file->of_mutex);
+        pthread_rwlock_unlock(&inode->i_rwlock);
+
+        return -1;
+    }
+
+    /* Determine how many bytes to read */
+    size_t to_read = inode->i_size - file->of_offset;
+    if (to_read > len) {
+        to_read = len;
+    }
+
+    size_t read = 0;
+    while (to_read > 0) {
+
+        size_t initial_offset = file->of_offset;
+        size_t amount_of_bytes_to_read;
+        size_t initial_block_offset = file->of_offset % BLOCK_SIZE;
+
+        if (initial_offset / BLOCK_SIZE < 10) {
+            for (size_t j = initial_offset / BLOCK_SIZE; to_read > 0 && j < INODE_BLOCKS_SIZE - 1; j++) {
+
+                char *block = (char *)data_block_get(inode->i_data_block[j]);
+
+                if (block == NULL) {
+
+                    pthread_mutex_unlock(&file->of_mutex);
+                    pthread_rwlock_unlock(&inode->i_rwlock);
+
+                    return -1;
+                }
+
+                /* Perform the actual read */
+                if (j == initial_offset / BLOCK_SIZE) {
+                    if (to_read > BLOCK_SIZE - initial_block_offset) {
+                        amount_of_bytes_to_read = BLOCK_SIZE - initial_block_offset;
+                    } else {
+                        amount_of_bytes_to_read = to_read;
+                    }
+                    memcpy(buffer + read, block + initial_block_offset, amount_of_bytes_to_read);
+                } else {
+                    amount_of_bytes_to_read = BLOCK_SIZE;
+                    if (to_read < BLOCK_SIZE - (file->of_offset % BLOCK_SIZE)) {
+                        amount_of_bytes_to_read = to_read;
+                    }
+
+                    memcpy(buffer + read, block, amount_of_bytes_to_read);
+                }
+
+                /* The offset associated with the file handle is
+                 * incremented accordingly */
+                file->of_offset += amount_of_bytes_to_read;
+
+                to_read -= amount_of_bytes_to_read;
+                read += amount_of_bytes_to_read;
+            }
+
+        } else {
+            int *indirect_block = (int *)data_block_get(
+                inode->i_data_block[INDIRECT_BLOCK_INDEX]);
+            if (indirect_block == NULL) {
+
+                pthread_mutex_unlock(&file->of_mutex);
+                pthread_rwlock_unlock(&inode->i_rwlock);
+
+                return -1;
+            }
+
+            size_t first_indirect_i = file->of_offset / BLOCK_SIZE - 10;
+            for (size_t i = first_indirect_i; i < (BLOCK_SIZE / sizeof(int)) && to_read > 0; i++) {
+
+                char *block = (char *)data_block_get(indirect_block[i]);
+
+                if (block == NULL) {
+
+                    pthread_mutex_unlock(&file->of_mutex);
+                    pthread_rwlock_unlock(&inode->i_rwlock);
+
+                    return -1;
+                }
+
+                /* Perform the actual read */
+                if (i == first_indirect_i) {
+                    if (to_read > BLOCK_SIZE - initial_block_offset) {
+                        amount_of_bytes_to_read = BLOCK_SIZE - initial_block_offset;
+                    } else {
+                        amount_of_bytes_to_read = to_read;
+                    }
+                    memcpy(buffer + read, block + initial_block_offset, amount_of_bytes_to_read);
+                } else {
+                    amount_of_bytes_to_read = BLOCK_SIZE;
+                    if (to_read < BLOCK_SIZE - (file->of_offset % BLOCK_SIZE)) {
+                        amount_of_bytes_to_read = to_read;
+                    }
+                    memcpy(buffer + read, block, amount_of_bytes_to_read);
+                }
+
+                /* The offset associated with the file handle is
+                 * incremented accordingly */
+
+                file->of_offset += amount_of_bytes_to_read;
+
+                to_read -= amount_of_bytes_to_read;
+                read += amount_of_bytes_to_read;
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&file->of_mutex);
+    pthread_rwlock_unlock(&inode->i_rwlock);
+
+    return (ssize_t)read;
+}

@@ -1,3 +1,13 @@
+/*                      
+ *                     Projeto de Sistemas Operativos 2021-22
+ *                         1º exercício LEIC-A/LEIC-T/LETI 
+ *                        
+ *                                Grupo 17 - LETI
+ *                    Pedro Alexandre Delgado Claro ist198960
+ *                   Edson Fernando Cabral da Veiga ist1100731
+ * 
+ */
+ 
 #include "../fs/operations.h"
 #include <assert.h>
 #include <pthread.h>
@@ -39,15 +49,15 @@ int main() {
     assert(tfs_init() != -1);
 
     for(int i = 0; i < N / 2; i++) {
-        pthread_create(&tid[i], NULL, tfs_write_tapi, (void*)&write_input[i]);
+        assert(pthread_create(&tid[i], NULL, tfs_write_tapi, (void*)&write_input[i]) == 0);
     }
 
     for(int i = N / 2; i < N; i++) {
-        pthread_create(&tid[i], NULL, tfs_read_tapi, (void*)&read_input[i-2]);
+        assert(pthread_create(&tid[i], NULL, tfs_read_tapi, (void*)&read_input[i-2]) == 0);
     }
 
     for(int i = 0; i < N; i++) {
-        pthread_join(tid[i], NULL);
+        assert(pthread_join(tid[i], NULL) == 0);
     }
 
     for(int i = 0; i < N / 2; i++) {
@@ -59,6 +69,10 @@ int main() {
        assert(read_input[i-2].rtn_value == (SIZE*COUNT));
     }
     
+    assert(strncmp(input1, output1, SIZE) == 0);
+
+    assert(strncmp(input2, output2, SIZE) == 0);
+
     assert(tfs_destroy() != -1);
 
     printf("Successful test.\n");

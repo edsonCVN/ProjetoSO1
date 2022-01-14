@@ -1,3 +1,13 @@
+/*                      
+ *                     Projeto de Sistemas Operativos 2021-22
+ *                         1º exercício LEIC-A/LEIC-T/LETI 
+ *                        
+ *                                Grupo 17 - LETI
+ *                    Pedro Alexandre Delgado Claro ist198960
+ *                   Edson Fernando Cabral da Veiga ist1100731
+ * 
+ */
+
 #include "state.h"
 
 #include <stdbool.h>

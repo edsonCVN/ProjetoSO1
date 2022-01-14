@@ -1,6 +1,15 @@
-# Makefile, v1
+#                   
+#                     Projeto de Sistemas Operativos 2021-22
+#                         1º exercício LEIC-A/LEIC-T/LETI 
+#                        
+#                                Grupo 17 - LETI
+#                    Pedro Alexandre Delgado Claro ist198960
+#                   Edson Fernando Cabral da Veiga ist1100731
+# 
+ 
+
+# Makefile
 # Sistemas Operativos, DEI/IST/ULisboa 2021-22
-#
 # This makefile should be run from the *root* of the project
 
 CC ?= gcc
@@ -14,7 +23,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/ourtest_3threads_W2R tests/ourtest_4threads_2W2R tests/ourtest_3threads_2W1R tests/test1 tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple tests/copy_to_external_simple  tests/copy_to_external_errors
+TARGET_EXECS := tests/ourtest_3threads_1W2R tests/ourtest_4threads_2W2R tests/ourtest_3threads_2W1R
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -69,53 +78,23 @@ fmt: $(SOURCES) $(HEADERS)
 # Note the lack of a rule.
 # make uses a set of default rules, one of which compiles C binaries
 # the CC, LD, CFLAGS and LDFLAGS are used in this rule
-tests/test1: tests/test1.o fs/operations.o fs/state.o
-tests/copy_to_external_errors: tests/copy_to_external_errors.o fs/operations.o fs/state.o
-tests/copy_to_external_simple: tests/copy_to_external_simple.o fs/operations.o fs/state.o
-tests/write_10_blocks_spill: tests/write_10_blocks_spill.o fs/operations.o fs/state.o
-tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/state.o
-tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
 tests/ourtest_3threads_2W1R: tests/ourtest_3threads_2W1R.o fs/operations.o fs/state.o fs/threads_api.o
 tests/ourtest_4threads_2W2R: tests/ourtest_4threads_2W2R.o fs/operations.o fs/state.o fs/threads_api.o
-tests/ourtest_3threads_W2R: tests/ourtest_3threads_W2R.o fs/operations.o fs/state.o fs/threads_api.o
+tests/ourtest_3threads_1W2R: tests/ourtest_3threads_1W2R.o fs/operations.o fs/state.o fs/threads_api.o
 
-test1: 
-	./tests/test1
-
-test2: 
-	./tests/copy_to_external_errors
-
-test3: 
-	./tests/copy_to_external_simple
-
-test4: 
-	./tests/write_10_blocks_spill
-
-test5: 
-	./tests/write_10_blocks_simple
-
-test6: 
-	./tests/write_more_than_10_blocks_simple
-
-test7:
+test1:
 	./tests/ourtest_3threads_2W1R
 
-test8:
+test2:
 	./tests/ourtest_4threads_2W2R
 
-test9:
-	./tests/ourtest_3threads_W2R
+test3:
+	./tests/ourtest_3threads_1W2R
 
 tests:
-	./tests/test1
-	./tests/copy_to_external_errors
-	./tests/copy_to_external_simple
-	./tests/write_10_blocks_spill
-	./tests/write_10_blocks_simple
-	./tests/write_more_than_10_blocks_simple
 	./tests/ourtest_3threads_2W1R
 	./tests/ourtest_4threads_2W2R
-	./tests/ourtest_3threads_W2R
+	./tests/ourtest_3threads_1W2R
 
 
 clean:
