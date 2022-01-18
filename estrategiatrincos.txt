@@ -1,0 +1,62 @@
+estruturas a proteger:
+state.c.
+
+    I-node table (inode_table e freeinode_ts)
+        rwlock (ou mutex)
+
+    Data blocks (fs_data e free_blocks)
+        mutex
+
+    Volatile FS state (open_file_table e free_open_file_entries)
+        mutex
+operations.c
+
+tfs_open: 
+    usar o rwlock presente na estrutura do inode
+tfs_read: 
+    usar o rwlock presente na estrutura do inode
+tfs_write:
+    usar o rwlock presente na estrutura do inode
+
+/*
+ * I-node
+ */
+typedef struct {
+    inode_type i_node_type;
+    size_t i_size;
+    int i_data_block[INODE_BLOCKS_SIZE];
+    pthread_rwlock_t i_rwlock;
+
+} inode_t;
+
+tfs_close
+
+
+state.c:
+    inode_create:  
+        mutex/rwlock(?) para inode_table/freeinode_ts
+    inode_delete:  
+        mutex/rwlock(?) para inode_table/freeinode_ts
+    inode_get:  
+        mutex/rwlock(?) para inode_table/freeinode_ts
+    add_dir_entry:
+        mutex/rwlock(?) para inode_table/freeinode_ts
+    find_in_dir:
+        mutex/rwlock(?) para inode_table/freeinode_ts
+    
+    data_block_get:
+        mutex para fs_data/free_blocks
+    data_block_alloc:
+        mutex para fs_data/free_blocks
+    data_block_free:
+        mutex para fs_data/free_blocks
+    
+    add_to_open_file_table:
+        mutex para open_file_table/free_open_file_entries
+    remove_from_open_file_table:
+        mutex para open_file_table/free_open_file_entries
+    get_open_file_entry
+        mutex para open_file_table/free_open_file_entries
+
+peruntar stor;
+    é suposto refazer inode_delete para dar free a blocos diretos e indiretos? (ajustar ao 1))

@@ -1,3 +1,13 @@
+/*                      
+ *                     Projeto de Sistemas Operativos 2021-22
+ *                         1º exercício LEIC-A/LEIC-T/LETI 
+ *                        
+ *                                Grupo 17 - LETI
+ *                    Pedro Alexandre Delgado Claro ist198960
+ *                   Edson Fernando Cabral da Veiga ist1100731
+ * 
+ */
+
 #ifndef STATE_H
 #define STATE_H
 
@@ -36,6 +46,7 @@ typedef enum { FREE = 0, TAKEN = 1 } allocation_state_t;
 typedef struct {
     int of_inumber;
     size_t of_offset;
+    pthread_mutex_t of_mutex;
 } open_file_entry_t;
 
 #define MAX_DIR_ENTRIES (BLOCK_SIZE / sizeof(dir_entry_t))
@@ -59,6 +70,8 @@ void *data_block_get(int block_number);
 
 int add_to_open_file_table(int inumber, size_t offset);
 int remove_from_open_file_table(int fhandle);
+/* Function usage requires unlock of file_entry's mutex since it is locked inside. */
 open_file_entry_t *get_open_file_entry(int fhandle);
+int delete_content_inode(inode_t *inode);
 
 #endif // STATE_H
